@@ -462,3 +462,5 @@ export const MOCK_NOTIFICATIONS = [
     extra: "San Francisco",
   },
 ];
+
+export type { Profile };

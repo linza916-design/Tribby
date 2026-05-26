@@ -1,286 +1,320 @@
-import React, { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+"use client";
+
+import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import {
+  Search,
   Sparkles,
-  HelpCircle,
-  MapPin,
-  Radio,
-  HeartHandshake,
-  Bot,
-  ChevronRight,
-  Zap,
+  Music,
+  Ticket,
+  CheckCircle2,
+  TrendingUp,
 } from "lucide-react";
-import { Profile } from "../lib/types";
-import { MOCK_PROFILES } from "../lib/data";
 
-interface GeminiMatchmakerProps {
-  onSelectProfile: (profile: Profile) => void;
-  matchMode: "dating" | "friendship" | "networking" | "event" | "events"; // Different modes could influence the matching algorithm and prompts
+import {
+  MOCK_MEETUPS,
+  MOCK_TRIBES,
+  MOCK_PROFILES,
+  INITIAL_USER_PROFILE,
+} from "../lib/data";
+
+interface MeetupsViewProps {
+  onTribeJoined: (tribeName: string) => void;
+  userTribeKeys: string[];
 }
 
-interface MatchReport {
-  matchedProfile: Profile;
-  affinityScore: number;
-  reasoning: string;
-  suggestedIcebreaker: string;
+interface ActivityLog {
+  id: string;
+  timestamp: string;
+  increment: number;
+  totalAfter: number;
+  isManual: boolean;
 }
 
-export const GeminiMatchmaker: React.FC<GeminiMatchmakerProps> = ({
-  onSelectProfile,
-  matchMode,
+interface TrendingVibe {
+  tag: string;
+  count: number;
+  icon: string;
+  isHot: boolean;
+  lastRapidIncrease: number;
+  pulseTrigger: number;
+  borderGlowTrigger: number;
+  activityLog: ActivityLog[];
+}
+
+export const MeetupsView: React.FC<MeetupsViewProps> = ({
+  onTribeJoined,
+  userTribeKeys,
 }) => {
-  const [query, setQuery] = useState("");
-  const [finding, setFinding] = useState(false);
-  const [result, setResult] = useState<MatchReport | null>(null);
+  const [tab, setTab] = useState<"hangouts" | "tribes">("hangouts");
+  const [search, setSearch] = useState("");
+  const [joinedMeetupIds, setJoinedMeetupIds] = useState<string[]>([]);
+  const [vibeFilter, setVibeFilter] = useState("All");
 
-  const presets = [
-    "A techno adventurer to crawl underground Berlin warehouses with tonight.",
-    "Someone intellectual into simulation theories, transhumanism, and modular synthesizers.",
-    "A spontaneous visual artist who loves cyber-botany and raw concrete brutalist aesthetics.",
-  ];
+  const [trendingVibes, setTrendingVibes] = useState<TrendingVibe[]>(() => {
+    const allProfiles = [INITIAL_USER_PROFILE, ...MOCK_PROFILES];
+    const tagCounts: Record<string, number> = {};
 
-  const handleSearch = (vibeText: string) => {
-    setQuery(vibeText);
-    setFinding(true);
-    setResult(null);
-
-    // Simulate server side embedding computations and response
-    setTimeout(() => {
-      const lowerQuery = vibeText.toLowerCase();
-      let bestProfile = MOCK_PROFILES[0];
-      let maxScore = 0;
-
-      // Simple scoring model to align tags, bios and hangouts
-      MOCK_PROFILES.forEach((p) => {
-        let score = 50; // base compatibility
-        p.tags.forEach((t) => {
-          if (lowerQuery.includes(t.toLowerCase())) score += 15;
-        });
-        p.favoriteHangouts.forEach((h) => {
-          if (lowerQuery.includes(h.toLowerCase())) score += 10;
-        });
-        if (lowerQuery.includes(p.location.toLowerCase())) score += 20;
-        if (lowerQuery.includes("techno") && p.tags.includes("Techno"))
-          score += 25;
-        if (lowerQuery.includes("philosoph") && p.tags.includes("Philosophy"))
-          score += 25;
-        if (lowerQuery.includes("art") && p.tags.includes("Art Galleries"))
-          score += 25;
-
-        // Add compatibility bias from standard profiles to keep high-vibe authenticity
-        score += p.compatibility - 90;
-
-        if (score > maxScore) {
-          maxScore = score;
-          bestProfile = p;
-        }
+    allProfiles.forEach((profile) => {
+      profile.tags?.forEach((tag: string) => {
+        tagCounts[tag] = (tagCounts[tag] || 0) + 1;
       });
+    });
 
-      // Clamp score
-      const finalScore = Math.min(99, Math.max(82, maxScore));
+    const icons = ["🧠", "⚡", "🎵"];
 
-      let reasoning = "";
-      let suggestedIcebreaker = "";
+    return Object.entries(tagCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([tag, freq], index) => ({
+        tag,
+        count: freq * 314 + 140,
+        icon: icons[index % icons.length],
+        isHot: false,
+        lastRapidIncrease: 0,
+        pulseTrigger: 0,
+        borderGlowTrigger: 0,
+        activityLog: [],
+      }));
+  });
 
-      if (bestProfile.id === "aria_vance_24") {
-        reasoning =
-          "Gemini neural indexing detected a 98% overlap in sonic resonance and nightlife. Aria Vance thrives in underground locations like Tresor and lists matching strobe-adrenaline triggers in her bio profile. She matches your exact timing and location logs.";
-        suggestedIcebreaker =
-          "“I think Trek-Node is host of a modular synth-loop set tonight. Interested in trading frequencies?”";
-      } else if (bestProfile.id === "julian_thorne_27") {
-        reasoning =
-          "Julian Thorne scores incredibly high on brutalist aesthetics and philosophy tags. His deep interest in vintage analog modular hardware is aligned with your query on modular synthesizers and simulation systems.";
-        suggestedIcebreaker =
-          "“Spotted your vintage synthesizers tag! Have you patched into the new experimental acoustics node yet?”";
-      } else if (bestProfile.id === "kira_moon_22") {
-        reasoning =
-          "Kira's cyber-botany aesthetic coordinates align with bioluminescent flora query points. She explores neo-tribal trends and organic hardware overlaps in Shibuya, creating an elite visual matching curve.";
-        suggestedIcebreaker =
-          "“Your bio on organic tech and cyber-gardening is wild. Have you captured any glowing flora lately?”";
-      } else if (bestProfile.id === "elias_thorne_29") {
-        reasoning =
-          "Elias Thorne scores highly for deep physics minimal theories. He focuses heavily on non-linear spatial audio systems, creating elite compatibility circles for neural-sound inquiry.";
-        suggestedIcebreaker =
-          "“Curious what sub-bass parameters you're currently configuring. Ready to sync on local quantum nodes?”";
-      } else {
-        reasoning =
-          "Maya shares a profound alignment with digital interactive galleries and algorithmic techno spaces. Her geographic location indices list an absolute match for urban visual exposure.";
-        suggestedIcebreaker =
-          "“I was just looking at digital light-space architectures. Which gallery is your current baseline reference?”";
-      }
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTrendingVibes((prev) =>
+        prev.map((v) => {
+          const now = Date.now();
+          const isSpike = Math.random() > 0.85;
+          const increment = isSpike
+            ? Math.floor(Math.random() * 8) + 12
+            : Math.floor(Math.random() * 3) + 1;
 
-      setResult({
-        matchedProfile: bestProfile,
-        affinityScore: finalScore,
-        reasoning,
-        suggestedIcebreaker,
-      });
-      setFinding(false);
-    }, 1200);
+          const nextCount = v.count + increment;
+
+          const log: ActivityLog = {
+            id: `${now}-${Math.random()}`,
+            timestamp: new Date(now).toLocaleTimeString(),
+            increment,
+            totalAfter: nextCount,
+            isManual: false,
+          };
+
+          return {
+            ...v,
+            count: nextCount,
+            isHot: isSpike,
+            lastRapidIncrease: isSpike ? now : v.lastRapidIncrease,
+            pulseTrigger: increment > 5 ? v.pulseTrigger + 1 : v.pulseTrigger,
+            activityLog: [log, ...v.activityLog].slice(0, 5),
+          };
+        }),
+      );
+    }, 5500);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleBoostVibe = (index: number) => {
+    setTrendingVibes((prev) => {
+      const copy = [...prev];
+      const now = Date.now();
+
+      copy[index] = {
+        ...copy[index],
+        count: copy[index].count + 15,
+        isHot: true,
+        pulseTrigger: copy[index].pulseTrigger + 1,
+        lastRapidIncrease: now,
+        activityLog: [
+          {
+            id: `${now}`,
+            timestamp: new Date(now).toLocaleTimeString(),
+            increment: 15,
+            totalAfter: copy[index].count + 15,
+            isManual: true,
+          },
+          ...copy[index].activityLog,
+        ].slice(0, 5),
+      };
+
+      return copy;
+    });
+  };
+
+  const filteredMeetups = MOCK_MEETUPS.filter((m) => {
+    const matchesSearch =
+      m.title.toLowerCase().includes(search.toLowerCase()) ||
+      m.description.toLowerCase().includes(search.toLowerCase());
+
+    const matchesFilter = vibeFilter === "All" || m.category === vibeFilter;
+
+    return matchesSearch && matchesFilter;
+  });
+
+  const filteredTribes = MOCK_TRIBES.filter(
+    (t) =>
+      t.name.toLowerCase().includes(search.toLowerCase()) ||
+      t.description.toLowerCase().includes(search.toLowerCase()),
+  );
+
+  const handleJoinMeetup = (id: string) => {
+    setJoinedMeetupIds((prev) =>
+      prev.includes(id) ? prev.filter((mId) => mId !== id) : [...prev, id],
+    );
   };
 
   return (
-    <div
-      id="gemini-matchmaker-root"
-      className="w-full bg-surface-container border border-white/5 rounded-2xl p-6 glass-card relative overflow-hidden"
-    >
-      {/* Glow Effects */}
-      <div className="absolute top-0 right-0 w-32 h-32 bg-brand-purple/10 rounded-full filter blur-2xl pointer-events-none" />
-
-      <div className="flex items-center gap-3 mb-4">
-        <div className="w-10 h-10 rounded-xl bg-brand-purple/10 flex items-center justify-center border border-brand-purple/30">
-          <Sparkles className="w-5 h-5 text-brand-purple text-glow-purple" />
-        </div>
-        <div>
-          <h2 className="font-display font-medium text-base text-white flex items-center gap-1.5">
-            Gemini Matchmaker Engine{" "}
-            <span className="text-[10px] bg-brand-purple/20 text-brand-purple px-1.5 py-0.5 rounded uppercase font-semibold">
-              Pro
-            </span>
-          </h2>
-          <p className="text-[11px] text-white/50">
-            Semantic preference matchmaking on vibes, not only swipe profiles
-          </p>
-        </div>
+    <div className="space-y-8">
+      {/* Tabs */}
+      <div className="flex gap-3">
+        {["hangouts", "tribes"].map((t) => (
+          <button
+            key={t}
+            onClick={() => setTab(t as "hangouts" | "tribes")}
+            className={`px-5 py-2 rounded-xl text-xs font-semibold transition ${
+              tab === t
+                ? "bg-green-400 text-black"
+                : "bg-white/10 text-white hover:bg-white/20"
+            }`}
+          >
+            {t === "hangouts" ? "📍 Local Hangouts" : "🔥 Tribal Nodes"}
+          </button>
+        ))}
       </div>
 
-      <div className="space-y-4">
-        <div className="relative">
-          <textarea
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="E.g., Find me an underground techno fan to explore secret warehouses with, who is into synthesizers..."
-            className="w-full h-24 bg-black/40 border border-white/10 rounded-xl p-4 text-xs text-white/90 placeholder-white/30 focus:outline-none focus:border-brand-purple/50 custom-scrollbar resize-none"
-          />
-          <div className="absolute bottom-2.5 right-2 text-[9px] font-mono text-white/20 select-none">
-            Gemini-3.5-Flash Active
-          </div>
-        </div>
+      {/* Search */}
+      <div className="relative">
+        <input
+          className="w-full bg-black/40 border border-white/10 rounded-xl pl-10 py-3 text-sm text-white focus:outline-none"
+          placeholder={`Search ${tab}...`}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <Search className="absolute left-3 top-3.5 w-4 h-4 text-white/40" />
+      </div>
 
-        {/* Presets Grid */}
-        <div className="space-y-1.5">
-          <span className="text-[10px] text-white/40 font-semibold tracking-wide uppercase font-mono">
-            Suggested Prompts
+      {/* Trending */}
+      <div className="bg-white/5 rounded-2xl p-5 border border-white/10">
+        <div className="flex items-center gap-2 mb-5">
+          <Sparkles className="text-green-400 w-4 h-4" />
+          <span className="text-xs uppercase tracking-widest text-white/70">
+            Trending Vibes
           </span>
-          <div className="grid grid-cols-1 gap-1.5">
-            {presets.map((p, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={() => handleSearch(p)}
-                className="text-left py-2 px-3 rounded-lg bg-white/5 border border-white/5 hover:border-brand-purple/20 text-[10px] text-white/70 hover:text-white transition truncate cursor-pointer hover:bg-white/10"
-              >
-                {p}
-              </button>
-            ))}
-          </div>
         </div>
 
-        {/* Action Button */}
-        <button
-          onClick={() => query && handleSearch(query)}
-          disabled={!query || finding}
-          className="w-full py-3 bg-brand-purple hover:bg-opacity-90 disabled:opacity-50 text-black font-semibold text-xs rounded-xl tracking-wider uppercase font-sans flex items-center justify-center gap-2 transition"
-        >
-          {finding ? (
-            <>
-              <Radio className="w-4 h-4 animate-pulse duration-1000" />{" "}
-              Synthesizing Embedding Maps...
-            </>
-          ) : (
-            <>
-              <Zap className="w-4 h-4 fill-black" /> Run High-Vibe Evaluation
-            </>
-          )}
-        </button>
-
-        {/* AI Result Cards */}
-        <AnimatePresence>
-          {result && (
+        <div className="grid md:grid-cols-3 gap-4">
+          {trendingVibes.map((v, i) => (
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 10 }}
-              className="mt-6 border-t border-white/10 pt-5 space-y-4"
+              key={v.tag}
+              whileTap={{ scale: 0.96 }}
+              whileHover={{ scale: 1.03 }}
+              onClick={() => handleBoostVibe(i)}
+              className={`cursor-pointer rounded-xl p-5 border transition ${
+                v.isHot
+                  ? "border-pink-500 shadow-lg shadow-pink-500/20"
+                  : "border-white/10"
+              }`}
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-[11px] font-mono font-semibold uppercase tracking-wider text-brand-purple">
-                  <Bot className="w-4 h-4" /> AI Affinity Match
-                </div>
-                <div className="px-2.5 py-0.5 rounded-full bg-brand-purple/10 border border-brand-purple/20 text-brand-purple text-xs font-mono font-bold">
-                  {result.affinityScore}% Compatibility Match
-                </div>
+              <div className="flex justify-between">
+                <span className="text-xl">{v.icon}</span>
+                <TrendingUp className="w-4 h-4 text-green-400" />
               </div>
 
-              {/* Profile card preview */}
-              <div
-                onClick={() => onSelectProfile(result.matchedProfile)}
-                className="p-3 bg-black/30 border border-white/5 hover:border-brand-purple/30 rounded-xl flex items-center gap-3 transition cursor-pointer hover:bg-black/50"
-              >
-                <div className="relative w-12 h-12 rounded-full overflow-hidden border border-white/10 flex-shrink-0 bg-neutral-900">
-                  <img
-                    referrerPolicy="no-referrer"
-                    src={result.matchedProfile.imageUrl}
-                    alt={result.matchedProfile.moniker}
-                    className="w-full h-full object-cover"
-                  />
-                  {result.matchedProfile.isVerified && (
-                    <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-brand-green text-black rounded-full flex items-center justify-center border-2 border-brand-dark">
-                      <span className="material-symbols-outlined text-[10px] font-bold">
-                        check
-                      </span>
-                    </div>
-                  )}
-                </div>
+              <h3 className="mt-3 font-semibold">{v.tag}</h3>
 
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <h4 className="font-display font-bold text-xs text-white truncate">
-                      {result.matchedProfile.moniker},{" "}
-                      {result.matchedProfile.age}
-                    </h4>
-                    <span className="text-[9px] text-white/40">
-                      {result.matchedProfile.nearbyDistance} away
-                    </span>
-                  </div>
-                  <div className="flex gap-1 flex-wrap mt-1">
-                    {result.matchedProfile.tags.slice(0, 3).map((t, idx) => (
-                      <span
-                        key={idx}
-                        className="bg-white/5 text-white/60 text-[8px] px-1.5 py-0.5 rounded font-mono"
-                      >
-                        #{t}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                <ChevronRight className="w-4 h-4 text-white/30" />
-              </div>
-
-              {/* AI Reasoning Insight */}
-              <div className="bg-brand-purple/5 border border-brand-purple/10 rounded-xl p-3.5 space-y-2">
-                <span className="text-[10px] font-mono text-brand-purple font-semibold tracking-wider uppercase block">
-                  Synthesis Log
-                </span>
-                <p className="text-[11px] text-white/70 leading-relaxed text-left">
-                  {result.reasoning}
-                </p>
-              </div>
-
-              {/* Suggested Icebreaker */}
-              <div className="space-y-1 text-left">
-                <span className="text-[10px] font-mono text-white/40 tracking-wider uppercase block ml-1">
-                  Suggested Gemini Icebreaker
-                </span>
-                <div className="bg-black/40 border border-white/5 rounded-xl p-3 text-xs italic text-brand-purple/90 border-l-2 border-l-brand-purple">
-                  {result.suggestedIcebreaker}
-                </div>
-              </div>
+              <p className="text-green-400 text-sm mt-1">
+                {v.count.toLocaleString()} syncs
+              </p>
             </motion.div>
-          )}
-        </AnimatePresence>
+          ))}
+        </div>
       </div>
+
+      {/* Hangouts */}
+      {tab === "hangouts" && (
+        <div className="grid md:grid-cols-2 gap-5">
+          {filteredMeetups.map((m) => {
+            const joined = joinedMeetupIds.includes(m.id);
+
+            return (
+              <div
+                key={m.id}
+                className="rounded-2xl border border-white/10 p-5 bg-white/5"
+              >
+                <h3 className="font-semibold">{m.title}</h3>
+
+                <p className="text-sm text-white/60 mt-2">{m.description}</p>
+
+                <div className="flex items-center gap-2 mt-3 text-xs text-white/70">
+                  <Music className="w-4 h-4" />
+                  {m.music}
+                </div>
+
+                <button
+                  onClick={() => handleJoinMeetup(m.id)}
+                  className={`w-full mt-5 py-3 rounded-xl font-semibold transition ${
+                    joined
+                      ? "bg-purple-500 text-black"
+                      : "bg-green-400 text-black hover:brightness-110"
+                  }`}
+                >
+                  {joined ? (
+                    <>
+                      <CheckCircle2 className="inline mr-2 w-4 h-4" />
+                      Joined
+                    </>
+                  ) : (
+                    <>
+                      <Ticket className="inline mr-2 w-4 h-4" />
+                      Join Meetup
+                    </>
+                  )}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Tribes */}
+      {tab === "tribes" && (
+        <div className="grid md:grid-cols-3 gap-5">
+          {filteredTribes.map((t) => {
+            const joined = userTribeKeys.includes(t.name);
+
+            return (
+              <div
+                key={t.id}
+                className="rounded-2xl border border-white/10 overflow-hidden bg-white/5"
+              >
+                <img
+                  src={t.imageUrl}
+                  alt={t.name}
+                  className="w-full h-36 object-cover"
+                />
+
+                <div className="p-5">
+                  <h3 className="font-semibold">{t.name}</h3>
+
+                  <p className="text-xs text-white/60 mt-2">{t.description}</p>
+
+                  <button
+                    onClick={() => onTribeJoined(t.name)}
+                    className={`w-full mt-5 py-3 rounded-xl transition ${
+                      joined
+                        ? "bg-green-400 text-black"
+                        : "bg-white/10 text-white hover:bg-white/20"
+                    }`}
+                  >
+                    {joined ? "Synced ✓" : "Connect Node"}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };
+
+export default MeetupsView;

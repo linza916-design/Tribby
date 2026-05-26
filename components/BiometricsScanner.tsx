@@ -1,13 +1,8 @@
+"use client";
+
 import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  ShieldCheck,
-  Video,
-  RefreshCw,
-  Cpu,
-  Award,
-  HelpCircle,
-} from "lucide-react";
+import { ShieldCheck, RefreshCw, Cpu, Award } from "lucide-react";
 
 interface BiometricsScannerProps {
   onVerifySuccess: () => void;
@@ -21,118 +16,146 @@ export const BiometricsScanner: React.FC<BiometricsScannerProps> = ({
   const [permission, setPermission] = useState<"prompt" | "granted" | "denied">(
     "prompt",
   );
+
   const [scanning, setScanning] = useState(false);
   const [scanProgress, setScanProgress] = useState(0);
   const [scanStage, setScanStage] = useState("");
   const [success, setSuccess] = useState(isAlreadyVerified);
+
   const videoRef = useRef<HTMLVideoElement | null>(null);
+
   const streamRef = useRef<MediaStream | null>(null);
 
-  const startCamera = async () => {
-    try {
-      setPermission("prompt");
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "user" },
-      });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
-      setPermission("granted");
-    } catch (err) {
-      console.warn(
-        "Camera permission denied, using holographic simulator fallback.",
-        err,
-      );
-      setPermission("denied");
-    }
-  };
+  const scanStages = [
+    "Locking facial anchors...",
+    "Analyzing 3D topology...",
+    "Gemini anti-catfish neural check...",
+    "Hashing secure identity signature...",
+    "Registering trust vault profile...",
+  ];
 
   const stopCamera = () => {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => track.stop());
+
       streamRef.current = null;
     }
   };
 
-  useEffect(() => {
-    if (scanning) {
-      setSuccess(false);
-      const interval = setInterval(() => {
-        setScanProgress((prev) => {
-          if (prev >= 100) {
-            clearInterval(interval);
-            setScanning(false);
-            setSuccess(true);
-            onVerifySuccess();
-            stopCamera();
-            return 100;
-          }
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: "user",
+        },
+      });
 
-          // Dynamic stage messages based on progress
-          if (prev < 20) setScanStage("Locking facial bounding anchors...");
-          else if (prev < 45)
-            setScanStage("Analyzing multi-layered depth topography (3D)...");
-          else if (prev < 70)
-            setScanStage(
-              "Gemini Anti-Catfish: Deepfake neural check (99.8% verified)...",
-            );
-          else if (prev < 90)
-            setScanStage("Hashing secure profile signature...");
-          else setScanStage("Identity registered to decentralized vault.");
+      streamRef.current = stream;
 
-          return prev + 1;
-        });
-      }, 50);
-      return () => clearInterval(interval);
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+
+      setPermission("granted");
+    } catch (err) {
+      console.warn("Camera unavailable — holographic simulator fallback.", err);
+
+      setPermission("denied");
     }
+  };
+
+  const triggerScan = async () => {
+    setSuccess(false);
+    setScanProgress(0);
+    setScanning(true);
+
+    if (permission !== "granted") {
+      await startCamera();
+    }
+  };
+
+  useEffect(() => {
+    if (!scanning) return;
+
+    const interval = setInterval(() => {
+      setScanProgress((prev) => {
+        const next = prev + 1;
+
+        const stageIndex = Math.floor(next / 20);
+
+        setScanStage(scanStages[Math.min(stageIndex, scanStages.length - 1)]);
+
+        if (next >= 100) {
+          clearInterval(interval);
+
+          setScanning(false);
+          setSuccess(true);
+
+          stopCamera();
+
+          onVerifySuccess();
+
+          return 100;
+        }
+
+        return next;
+      });
+    }, 45);
+
+    return () => clearInterval(interval);
   }, [scanning]);
 
   useEffect(() => {
     return () => stopCamera();
   }, []);
 
-  const triggerScan = () => {
-    setScanProgress(0);
-    setScanning(true);
-    if (permission !== "granted" && permission !== "denied") {
-      startCamera();
-    }
-  };
-
   return (
-    <div
-      id="biometric-verification-root"
-      className="w-full max-w-md mx-auto bg-surface-container-low border border-white/5 rounded-2xl p-6 glass-card relative overflow-hidden text-center"
-    >
-      {/* Glow Backdrops */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-48 bg-brand-green/10 rounded-full filter blur-3xl pointer-events-none" />
+    <div className="w-full max-w-md mx-auto bg-surface-container-low border border-white/5 rounded-2xl p-6 glass-card relative overflow-hidden text-center">
+      {/* Glow */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-52 h-52 bg-brand-green/10 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-2">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-6">
+        <div className="flex gap-2 items-center">
           <ShieldCheck className="w-5 h-5 text-brand-green" />
-          <span className="font-sans font-semibold tracking-wide text-xs uppercase text-white/60">
+          <span className="text-xs uppercase tracking-wider text-white/60 font-semibold">
             Biometric Guard AI
           </span>
         </div>
-        <div className="px-2.5 py-0.5 rounded-full bg-brand-green/10 text-brand-green text-[10px] font-mono tracking-wider font-semibold uppercase">
+
+        <span
+          className={`px-3 py-1 rounded-full text-[10px] font-mono uppercase
+          ${
+            success
+              ? "bg-brand-green/10 text-brand-green"
+              : "bg-white/5 text-white/50"
+          }`}
+        >
           {success ? "Verified" : "Unverified"}
-        </div>
+        </span>
       </div>
 
-      <div className="relative w-48 h-48 mx-auto mb-6 rounded-full border border-white/10 overflow-hidden flex items-center justify-center bg-black/40">
-        {/* Verification Mesh overlay */}
+      {/* Scanner Orb */}
+      <div className="relative w-52 h-52 mx-auto mb-6 rounded-full border border-white/10 overflow-hidden bg-black/40 flex items-center justify-center">
+        {/* Scan Beam */}
         <AnimatePresence>
           {scanning && (
             <motion.div
               initial={{ top: "0%" }}
-              animate={{ top: ["0%", "100%", "0%"] }}
-              transition={{ repeat: Infinity, duration: 4, ease: "linear" }}
-              className="absolute left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-brand-green to-transparent z-10 text-glow"
+              animate={{
+                top: ["0%", "100%", "0%"],
+              }}
+              transition={{
+                repeat: Infinity,
+                duration: 3,
+                ease: "linear",
+              }}
+              className="absolute left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-brand-green to-transparent z-20"
             />
           )}
         </AnimatePresence>
 
+        {/* Camera Feed */}
         {permission === "granted" && !success && (
           <video
             ref={videoRef}
@@ -143,96 +166,104 @@ export const BiometricsScanner: React.FC<BiometricsScannerProps> = ({
           />
         )}
 
-        {(permission === "denied" || permission === "prompt" || success) && (
-          <div className="flex flex-col items-center justify-center p-4">
-            {success ? (
-              <motion.div
-                initial={{ scale: 0.5, rotate: -45 }}
-                animate={{ scale: 1, rotate: 0 }}
-                className="w-16 h-16 rounded-full bg-brand-green/10 flex items-center justify-center border border-brand-green"
-              >
-                <Award className="w-8 h-8 text-brand-green animate-bounce" />
-              </motion.div>
-            ) : (
-              <div className="relative">
-                <Cpu
-                  className={`w-16 h-16 text-white/20 ${scanning ? "animate-spin" : ""}`}
-                />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="material-symbols-outlined text-brand-green/60 text-3xl animate-pulse">
-                    face_5
-                  </span>
-                </div>
-              </div>
-            )}
+        {/* Verified State */}
+        {success && (
+          <motion.div
+            initial={{
+              scale: 0.6,
+              rotate: -30,
+            }}
+            animate={{
+              scale: 1,
+              rotate: 0,
+            }}
+            className="w-20 h-20 rounded-full bg-brand-green/10 border border-brand-green flex items-center justify-center"
+          >
+            <Award className="w-10 h-10 text-brand-green animate-bounce" />
+          </motion.div>
+        )}
+
+        {/* Idle CPU */}
+        {!success && permission !== "granted" && (
+          <div className="relative">
+            <Cpu
+              className={`w-16 h-16 text-white/20 ${
+                scanning ? "animate-spin" : ""
+              }`}
+            />
           </div>
         )}
 
-        {/* Floating Matrix Diagnostics */}
+        {/* Diagnostics */}
         {scanning && (
-          <div className="absolute inset-0 bg-black/20 font-mono text-[9px] text-brand-green text-left p-3 overflow-hidden select-none pointer-events-none">
-            <div className="animate-pulse">LOCATING EYES: OK</div>
-            <div>MESH_COUNT: 2,410</div>
-            <div>LIVENESS_PROB: 99.8%</div>
+          <div className="absolute inset-0 bg-black/30 p-4 text-left text-[10px] font-mono text-brand-green pointer-events-none">
+            <div>LOCATING EYES: OK</div>
+            <div>MESH: 2410</div>
+            <div>LIVENESS: 99.8%</div>
             <div>FPS: 60</div>
-            <div className="text-white/60">SECURE VAULT PATH ACTIVE</div>
+            <div className="text-white/60">SECURE VAULT ACTIVE</div>
           </div>
         )}
       </div>
 
+      {/* Success */}
       {success ? (
-        <div id="verified-state" className="space-y-4">
-          <h3 className="font-display font-bold text-lg text-white">
+        <div className="space-y-4">
+          <h3 className="text-lg font-bold text-white">
             Trust Signature Unlocked
           </h3>
-          <p className="text-xs text-white/60 px-4 leading-relaxed">
-            Your profile has been processed through our 3D biometrics mesh. You
-            hold the green badge, guaranteeing dating matches you are genuine.
+
+          <p className="text-xs text-white/60 leading-relaxed">
+            Your identity is secured by Tribby’s cryptographic biometric mesh.
           </p>
+
           <button
             onClick={triggerScan}
-            className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-xs hover:bg-white/10 text-white transition flex items-center gap-2 mx-auto"
+            className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white text-xs flex items-center gap-2 mx-auto hover:bg-white/10 transition"
           >
-            <RefreshCw className="w-3.5 h-3.5" /> Re-scan Face
+            <RefreshCw className="w-4 h-4" />
+            Re-scan Face
           </button>
         </div>
       ) : (
-        <div id="scan-action-state" className="space-y-4">
-          <h3 className="font-display font-medium text-base text-white">
+        <div className="space-y-4">
+          <h3 className="text-base font-semibold text-white">
             Secure Selfie Verification
           </h3>
-          <p className="text-xs text-white/60 px-2 leading-relaxed">
-            Tribby prevents catfish accounts using cryptographic depth checks.
-            Grants real camera permission for native biometrics scanning.
+
+          <p className="text-xs text-white/60 leading-relaxed">
+            Tribby prevents fake identities using live depth analysis and neural
+            trust checks.
           </p>
 
           {scanning ? (
-            <div className="space-y-2 px-2">
-              <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+            <div className="space-y-2">
+              <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-brand-green rounded-full transition-all duration-300"
-                  style={{ width: `${scanProgress}%` }}
+                  style={{
+                    width: `${scanProgress}%`,
+                  }}
                 />
               </div>
-              <div className="flex justify-between items-center text-[10px] font-mono text-white/40">
-                <span className="truncate max-w-[200px] text-left">
-                  {scanStage}
-                </span>
+
+              <div className="flex justify-between text-[10px] font-mono text-white/50">
+                <span>{scanStage}</span>
                 <span>{scanProgress}%</span>
               </div>
             </div>
           ) : (
-            <div className="flex gap-3 justify-center">
-              <button
-                onClick={triggerScan}
-                className="w-full py-3 bg-brand-green text-black font-semibold text-xs rounded-xl hover:bg-opacity-90 active:scale-95 transition tracking-wider uppercase font-sans neon-glow select-none"
-              >
-                Scan My Face
-              </button>
-            </div>
+            <button
+              onClick={triggerScan}
+              className="w-full py-3 bg-brand-green text-black font-semibold rounded-xl text-xs uppercase tracking-wider hover:opacity-90 active:scale-95 transition"
+            >
+              Scan My Face
+            </button>
           )}
         </div>
       )}
     </div>
   );
 };
+
+export default BiometricsScanner;
