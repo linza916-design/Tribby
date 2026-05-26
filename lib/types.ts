@@ -1,67 +1,65 @@
-export interface FamilyMember {
+export type MatchMode = "dating" | "friendship" | "networking" | "events";
+
+export interface Profile {
   id: string;
-  name: string;
-  avatar: string;
-  role: string;
-  goal: string;
-  progress: number;
-  healthScore: number;
-  stamina: string;
-  sleepQuality: string;
-  coatHealth: string; // for Leo the pet or general metabolic/hair/skin vitality
-  nextScanDays: number;
+  moniker: string;
+  age: number;
+  location: string;
+  bio: string;
+  compatibility: number; // e.g. 98%
+  tags: string[];
+  relationshipGoals: string;
+  matchMode: MatchMode;
+  imageUrl: string;
+  currentMusicName?: string;
+  currentMusicArtist?: string;
+  mood: string;
+  nearbyDistance: string; // e.g., "1.2 miles"
+  favoriteHangouts: string[];
+  isVerified: boolean;
+  tribeCount: string;
+  meetupsCount: number;
+  isFakeCheckOk: boolean;
 }
 
-export interface Product {
+export interface ChatMessage {
+  id: string;
+  senderId: string; // "user" or partner profile's id
+  text: string;
+  timestamp: string; // e.g. "10:42 PM"
+  read: boolean;
+  isDisappearing?: boolean;
+}
+
+export interface ChatSession {
+  partnerId: string;
+  partnerName: string;
+  partnerAvatar: string;
+  messages: ChatMessage[];
+  lastActive: string; // "2m ago"
+}
+
+export interface MeetupItem {
+  id: string;
+  title: string;
+  description: string;
+  attendeesCount: number;
+  attendeesPics: string[];
+  vibe: string;
+  distance: string;
+  costLevel: "$" | "$$" | "$$$";
+  safetyVerification: boolean; // biometric verified host
+  music: string;
+  category: string;
+}
+
+export interface TribeNode {
   id: string;
   name: string;
   description: string;
-  price: number;
-  originalPrice?: number;
-  image: string;
-  category: string;
-  premiumSelection: boolean;
-  tags: string[];
-  stars: number;
-}
-
-export interface OrderItem {
-  productId: string;
-  name: string;
-  image: string;
-  price: number;
-  qty: number;
-}
-
-export interface Order {
-  id: string;
-  orderNumber: string;
-  date: string;
-  status: 'In Transit' | 'Delivered' | 'Processing';
-  total: number;
-  items: OrderItem[];
-  carrier: string;
-  trackingNumber: string;
-  shippingAddress: {
-    name: string;
-    line1: string;
-    cityStateZip: string;
-  };
-  stepperIndex: number; // 1 to 5 corresponding to the stages
-}
-
-export interface Referral {
-  id: string;
-  name: string;
-  joinedDate: string;
-  status: 'Successful' | 'Pending';
-  credit: number;
-}
-
-export interface Message {
-  id: string;
-  sender: 'user' | 'ai';
-  text: string;
-  timestamp: string;
-  groundingSources?: { title: string; uri: string }[];
+  imageUrl: string;
+  activeNodesCount: string; // e.g., "4.2k"
+  membersCount: string; // e.g., "1.8k"
+  category: "Trending" | "Nearby" | "Digital Art" | "Techno" | "Philosophy";
+  memberPics: string[];
 }

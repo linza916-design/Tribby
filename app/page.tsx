@@ -1,647 +1,854 @@
 "use client";
 
-import React, { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Sun,
-  Moon,
-  ShoppingCart,
-  Star,
-  Users,
   Sparkles,
-  Truck,
-  Gift,
-  Brain,
-  LogOut,
-  ChevronRight,
-  Menu,
-  X,
-  CheckCircle2,
   ShieldCheck,
-  Trash2,
-  Lock,
-  Wallet,
   Coins,
+  Flame,
+  Heart,
+  MessageSquare,
+  MapPin,
+  Plus,
+  UserCheck,
+  Calendar,
+  Radio,
+  Share2,
+  Award,
+  Tv,
+  Cpu,
+  Compass,
+  Bell,
+  ArrowRight,
+  CornerDownRight,
 } from "lucide-react";
 
-import { Product, Order, FamilyMember } from "../lib/types";
-import SplashScreen from "../components/SplashScreen";
-import Onboarding from "../components/Onboarding";
-import AuthScreens from "../components/AuthScreens";
-import FamilyDashboard from "../components/FamilyDashboard";
-import WellnessAdvisor from "../components/WellnessAdvisor";
-import Marketplace from "../components/Marketplace";
-import DeliveryTracking from "../components/DeliveryTracking";
-import RewardsSharing from "../components/RewardsSharing";
+import { Profile, MatchMode } from "../lib/types";
+import {
+  MOCK_PROFILES,
+  INITIAL_USER_PROFILE,
+  MOCK_NOTIFICATIONS,
+} from "../lib/data";
+import { SwipeCard } from "../components/SwipeCard";
+import { BiometricsScanner } from "../components/BiometricsScanner";
+import { GeminiMatchmaker } from "../components/GeminiMatchmaker";
+import { FlutterwaveCheckout } from "../components/FlutterwaveCheckout";
+import { StoriesView } from "../components/StoriesView";
+import { ChatView } from "../components/ChatView";
+import { MeetupsView } from "../components/MeetupsView";
+
+const TRAFFIC_ALERTS = [
+  {
+    senderName: "Kai",
+    msg: "curated a new digital vinyl deck",
+    extra: "Axiom",
+  },
+  {
+    senderName: "Sora Node",
+    msg: "joined Underground Techno Tribe",
+    extra: "Neon",
+  },
+  {
+    senderName: "Valerie",
+    msg: "sent a public frequency wave nearby",
+    extra: "0.4km",
+  },
+  {
+    senderName: "System Central",
+    msg: "activated a matching route corridor",
+    extra: "Overclock",
+  },
+  {
+    senderName: "Zara Tech",
+    msg: "posted an ambient focus track vibe",
+    extra: "Berlin",
+  },
+  {
+    senderName: "Tribe Bot",
+    msg: "synchronized peer grid database logs",
+    extra: "Core",
+  },
+];
 
 export default function Home() {
-  const [appState, setAppState] = useState<
-    "splash" | "onboarding" | "auth" | "platform"
-  >("splash");
+  // Navigation & Core States
   const [activeTab, setActiveTab] = useState<
-    "dashboard" | "advisor" | "marketplace" | "delivery" | "rewards"
-  >("dashboard");
-  const [theme, setTheme] = useState<"light" | "dark">("light");
-  const [user, setUser] = useState<{ name: string; email: string } | null>(
-    null,
+    "swipe" | "explore" | "chats" | "matchmaker" | "verification"
+  >("swipe");
+  const [currentProfileIdx, setCurrentProfileIdx] = useState(0);
+  const [matchMode, setMatchMode] = useState<MatchMode>("dating");
+  const [userProfile, setUserProfile] = useState<Profile>(INITIAL_USER_PROFILE);
+  const [coinsCount, setCoinsCount] = useState(120);
+  const [streakCount, setStreakCount] = useState(5);
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [userTribeKeys, setUserTribeKeys] = useState<string[]>([
+    "Underground Techno",
+  ]);
+  const [activeChatId, setActiveChatId] = useState<string>("aria_vance_24");
+
+  // Interactive Stories Overlay state
+  const [isStoriesOpen, setIsStoriesOpen] = useState(false);
+
+  // Match Success Overlay states
+  const [recentMatchedProfile, setRecentMatchedProfile] =
+    useState<Profile | null>(null);
+
+  // Notifications drawer state
+  const [notifications, setNotifications] = useState(MOCK_NOTIFICATIONS);
+  const [showNotificationDrawer, setShowNotificationDrawer] = useState(false);
+
+  // Traffic overdrive parameters
+  const [trafficMode, setTrafficMode] = useState<
+    "normal" | "heavy" | "overclocked"
+  >("normal");
+  const [activePeers, setActivePeers] = useState(18420);
+
+  // Realtime Traffic Simulation Engine based on user-selected intensity
+  useEffect(() => {
+    let tickSpeed = 2200;
+    if (trafficMode === "heavy") tickSpeed = 950;
+    if (trafficMode === "overclocked") tickSpeed = 330;
+
+    const interval = setInterval(() => {
+      setActivePeers((prev) => {
+        let increment = Math.floor(Math.random() * 3) + 1;
+        if (trafficMode === "heavy")
+          increment = Math.floor(Math.random() * 11) + 4;
+        if (trafficMode === "overclocked")
+          increment = Math.floor(Math.random() * 88) + 33;
+        return prev + increment;
+      });
+
+      // Spawn live activity notifications as proof of high traffic density
+      const spawnChance =
+        trafficMode === "normal" ? 0.05 : trafficMode === "heavy" ? 0.2 : 0.42;
+      if (Math.random() < spawnChance) {
+        const randomIndex = Math.floor(Math.random() * TRAFFIC_ALERTS.length);
+        const alert = TRAFFIC_ALERTS[randomIndex];
+        const newNotif = {
+          id: `notif_sim_${Date.now()}_${Math.random()}`,
+          type: "like",
+          userMoniker: alert.senderName,
+          message: alert.msg,
+          partnerAvatar:
+            "https://lh3.googleusercontent.com/aida-public/AB6AXuBC84CWhJwBA_oOPwR1qbM654ItFm6orh9CFizyKu2d8lvVLBCQmC9M7gu0RhXuoNTQDJpF24hN_dgbCzbUd8bMgaKDexnxR2TKh_WcZ8MsWPd3CY4461FQhBEM0fYJZlbnSLu8ARmmwXTdwekDgHzPRsrsKe5Go6PWpaoRcd6dFUUoS22giiqyr9uJFx0T8RhX6BvzuCAQmu-xJSB_GpJziuv_esyp3DmGTaBFkD4Qn9Pb8DtoLGKYAUTZLd7teug6ybgwHbPnz6U",
+          time: "Just now",
+          extra: alert.extra,
+        };
+        // Cap notifications array at 10 items to prevent infinite memory array growth
+        setNotifications((prev) => [newNotif, ...prev.slice(0, 9)]);
+      }
+    }, tickSpeed);
+
+    return () => clearInterval(interval);
+  }, [trafficMode]);
+
+  // Feed filtration based on active matchMode
+  const filteredProfiles = MOCK_PROFILES.filter(
+    (p) => p.matchMode === matchMode,
   );
+  const activeProfile = filteredProfiles[currentProfileIdx];
 
-  // Cart logic
-  const [cart, setCart] = useState<
-    { product: Product; qty: number; isSub: boolean }[]
-  >([]);
-  const [isCartOpen, setIsCartOpen] = useState(false);
-  const [currentCredits, setCurrentCredits] = useState(140.0);
-  const [checkoutStep, setCheckoutStep] = useState<
-    "none" | "processing" | "success"
-  >("none");
-  const [lastTxId, setLastTxId] = useState("");
+  // Increment current index on swiping
+  const handleLike = () => {
+    if (!activeProfile) return;
 
-  const [advisorOverride, setAdvisorOverride] = useState("");
-
-  // Mobile Menu Layout Toggle
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-  // Handle Theme Toggle
-  const toggleTheme = () => {
-    const newTheme = theme === "light" ? "dark" : "light";
-    setTheme(newTheme);
-    if (newTheme === "dark") {
-      document.documentElement.classList.add("dark");
+    // Simulate match algorithm triggers
+    if (activeProfile.compatibility >= 94) {
+      setRecentMatchedProfile(activeProfile);
     } else {
-      document.documentElement.classList.remove("dark");
+      handleNextProfile();
     }
   };
 
-  const handleAskAdvisor = (query: string) => {
-    setAdvisorOverride(query);
-    setActiveTab("advisor");
+  const handlePass = () => {
+    handleNextProfile();
   };
 
-  const handleAddToCart = (product: Product, qty: number, isSub: boolean) => {
-    setCart((prev) => {
-      const exists = prev.find(
-        (item) => item.product.id === product.id && item.isSub === isSub,
-      );
-      if (exists) {
-        return prev.map((item) =>
-          item.product.id === product.id && item.isSub === isSub
-            ? { ...item, qty: item.qty + qty }
-            : item,
-        );
+  const handleNextProfile = () => {
+    setCurrentProfileIdx((prev) => prev + 1);
+  };
+
+  const handleCloseMatchOverlay = () => {
+    setRecentMatchedProfile(null);
+    handleNextProfile();
+  };
+
+  const handleStartMatchChat = () => {
+    if (recentMatchedProfile) {
+      setActiveChatId(recentMatchedProfile.id);
+      setRecentMatchedProfile(null);
+      setActiveTab("chats");
+    }
+  };
+
+  const handleVerifySuccess = () => {
+    setUserProfile((prev) => ({ ...prev, isVerified: true }));
+    setCoinsCount((v) => v + 50); // reward coins
+  };
+
+  const handleUpgradeCompleted = (coinsAwarded: number) => {
+    setCoinsCount((v) => v + coinsAwarded);
+    setUserProfile((prev) => ({ ...prev, isVerified: true }));
+  };
+
+  const handleTribeJoinToggle = (tribeName: string) => {
+    setUserTribeKeys((prev) => {
+      if (prev.includes(tribeName)) {
+        return prev.filter((t) => t !== tribeName);
+      } else {
+        setCoinsCount((c) => c + 15); // Reward coins on joining a tribe community!
+        return [...prev, tribeName];
       }
-      return [...prev, { product, qty, isSub }];
     });
   };
 
-  const handleRemoveFromCart = (productId: string, isSub: boolean) => {
-    setCart((prev) =>
-      prev.filter(
-        (item) => !(item.product.id === productId && item.isSub === isSub),
-      ),
-    );
+  const handleSelectMatchedProfileFromAI = (profile: Profile) => {
+    // Inject custom selected profile into swipe interface
+    const existingIdx = filteredProfiles.findIndex((p) => p.id === profile.id);
+    if (existingIdx !== -1) {
+      setCurrentProfileIdx(existingIdx);
+      setActiveTab("swipe");
+    }
   };
-
-  // Safe credit deduction
-  const applyRedeemCredits = (amount: number) => {
-    setCurrentCredits((prev) => Math.max(0, prev - amount));
-  };
-
-  const handleAuthSuccess = (userData: { name: string; email: string }) => {
-    setUser(userData);
-
-    setAppState("platform");
-  };
-
-  const handleFlutterwaveCheckout = () => {
-    setCheckoutStep("processing");
-    const mockTxId = "FLW-TX-" + Math.floor(100000 + Math.random() * 900000);
-    setLastTxId(mockTxId);
-
-    // Simulate payment response
-    setTimeout(() => {
-      setCheckoutStep("success");
-      setCart([]);
-    }, 2800);
-  };
-
-  // Calc cart prices
-  const cartSubtotal = cart.reduce((total, item) => {
-    const unitPrice = item.isSub
-      ? item.product.price * 0.85
-      : item.product.price;
-    return total + unitPrice * item.qty;
-  }, 0);
-
-  const cartCount = cart.reduce((count, item) => count + item.qty, 0);
-
-  // Transitions inside components
-  if (appState === "splash") {
-    return <SplashScreen onComplete={() => setAppState("onboarding")} />;
-  }
-
-  if (appState === "onboarding") {
-    return <Onboarding onComplete={() => setAppState("auth")} />;
-  }
-
-  if (appState === "auth") {
-    return <AuthScreens onSuccess={handleAuthSuccess} />;
-  }
 
   return (
     <div
-      className={`min-h-screen ${theme === "dark" ? "bg-[#061b0e] text-cream" : "bg-cream text-primary"} transition-colors duration-300 font-sans flex flex-col`}
+      id="tribby-app-root"
+      className="min-h-screen bg-[#080808] text-[#e5e2e1] flex flex-col items-center justify-between font-sans overflow-x-hidden relative select-none mesh-gradient pb-20 md:pb-6"
     >
-      {/* Platform Header */}
-      <nav
-        className={`fixed top-0 w-full h-20 z-40 flex items-center justify-between px-6 md:px-16 border-b ${
-          theme === "dark"
-            ? "bg-[#061b0e]/82 border-white/10"
-            : "bg-cream/82 border-outline-variant/10"
-        } backdrop-blur-md`}
-      >
-        {/* Logo */}
+      {/* Background Atmosphere Overlays */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[#121212] via-[#080808] to-[#1a1005] opacity-60 pointer-events-none z-0" />
+
+      {/* Exquisite Top Atmospheric Navigation Header */}
+      <header className="w-full max-w-7xl mx-auto px-4 py-4 flex items-center justify-between border-b border-white/5 relative z-30 bg-black/40 backdrop-blur-xl">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-gradient-to-br from-[#C5A059] to-[#8E6D31] rounded-full flex items-center justify-center shrink-0">
-            <span className="text-black text-xs font-serif font-extrabold">
-              DX
+          <div className="w-10 h-10 bg-gradient-to-tr from-[#FF5C00] to-[#FF005C] rounded-xl flex items-center justify-center font-black text-xl tracking-tighter text-white shadow-[0_0_20px_rgba(255,92,0,0.3)] transform hover:scale-105 transition">
+            T
+          </div>
+          <div className="text-left select-none">
+            <h1 className="font-display font-black text-2xl tracking-tight text-white flex items-center gap-1.5 leading-none">
+              Tribby
+              <span className="text-[10px] text-brand-purple font-mono uppercase font-bold tracking-widest relative top-0.5">
+                PRO
+              </span>
+            </h1>
+            <span className="text-[9px] text-white/40 block tracking-tight font-mono">
+              Social Algorithm Framework
             </span>
           </div>
-          <span className="font-sans text-2xl font-bold tracking-tighter text-white">
-            DIXON
-          </span>
-          <div className="h-6 w-[1px] bg-white/20 hidden md:block"></div>
-          <div className="hidden md:flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] text-[#C5A059]">
-            <div className="w-2 h-2 rounded-full bg-[#C5A059] animate-pulse"></div>
-            Verified Platform Status: Active
+        </div>
+
+        {/* Global Gamification, Coins meter, and Account parameters */}
+        <div id="quick-metrics-hub" className="flex items-center gap-3">
+          {/* Physical Location Beacon Badge */}
+          <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-semibold">
+            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+            <span className="text-white/80 font-mono text-[10.5px]">
+              Kampala, UG
+            </span>
           </div>
-        </div>
 
-        {/* Large Screen Navigation Tabs */}
-        <div className="hidden lg:flex items-center gap-1.5 bg-cream-dark/40 dark:bg-primary-container/20 p-1.5 rounded-full border border-outline-variant/5">
-          {[
-            {
-              id: "dashboard",
-              label: "My Family",
-              icon: <Users className="w-4 h-4" />,
-            },
-            {
-              id: "advisor",
-              label: "AI consultation",
-              icon: <Brain className="w-4 h-4" />,
-            },
-            {
-              id: "marketplace",
-              label: "Supplement store",
-              icon: <Star className="w-4 h-4 text-secondary-container" />,
-            },
-            {
-              id: "delivery",
-              label: "Active shipments",
-              icon: <Truck className="w-4 h-4" />,
-            },
-            {
-              id: "rewards",
-              label: "Wellness awards",
-              icon: <Gift className="w-4 h-4" />,
-            },
-          ].map((tab) => {
-            const isSelected = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`flex items-center gap-2 px-5 py-2.5 text-xs font-bold leading-none rounded-full transition-all cursor-pointer ${
-                  isSelected
-                    ? "bg-primary text-white shadow-md font-sans"
-                    : "text-outline hover:bg-cream dark:hover:bg-white/5"
-                }`}
-              >
-                {tab.icon}
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
+          {/* Real-time Traffic Overload Indicator */}
+          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-[10.5px] font-mono">
+            <span
+              className={`w-1.5 h-1.5 rounded-full ${
+                trafficMode === "normal"
+                  ? "bg-emerald-400 animate-pulse"
+                  : trafficMode === "heavy"
+                    ? "bg-yellow-400 animate-pulse"
+                    : "bg-rose-500 animate-ping"
+              }`}
+            ></span>
+            <span className="text-white/40">Density:</span>
+            <span
+              className={`font-bold uppercase tracking-tight ${
+                trafficMode === "normal"
+                  ? "text-emerald-400"
+                  : trafficMode === "heavy"
+                    ? "text-yellow-400 font-bold"
+                    : "text-rose-400 font-black animate-pulse"
+              }`}
+            >
+              {trafficMode === "normal" && "Stable (1.0x)"}
+              {trafficMode === "heavy" && "Peak (2.5x)"}
+              {trafficMode === "overclocked" && "OVERFLOW (10x+)"}
+            </span>
+          </div>
 
-        {/* Dynamic Controls Side */}
-        <div className="flex items-center gap-3">
-          {/* Light/Dark Mode Switch */}
+          {/* Stories reels launch button */}
           <button
-            onClick={toggleTheme}
-            className="p-2.5 bg-white/40 dark:bg-white/10 rounded-full border border-outline-variant/10 hover:shadow-sm cursor-pointer transition-all"
-            title="Toggle theme visual model"
+            onClick={() => setIsStoriesOpen(true)}
+            className="flex items-center gap-1.5 bg-brand-green/10 hover:bg-brand-green/20 text-brand-green px-3 py-1.5 rounded-xl border border-brand-green/20 text-xs font-semibold cursor-pointer transition select-none"
           >
-            {theme === "dark" ? (
-              <Sun className="w-4 h-4 text-amber-400" />
-            ) : (
-              <Moon className="w-4 h-4 text-primary" />
-            )}
+            <Tv className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline font-sans">Vibe Stories</span>
           </button>
 
-          {/* Cart Icon trigger */}
+          {/* Daily Streak Indicator */}
+          <div className="flex items-center gap-1 bg-[#ff5e00]/10 border border-[#ff5e00]/20 px-2.5 py-1.5 rounded-xl text-[#ff5e00] text-xs font-bold animate-pulse-subtle">
+            <Flame className="w-4 h-4 fill-[#ff5e00]" />
+            <span className="font-mono">{streakCount}D</span>
+          </div>
+
+          {/* Coin economy metrics widget */}
           <button
-            onClick={() => setIsCartOpen(true)}
-            className="p-2.5 bg-white/40 dark:bg-white/10 rounded-full border border-outline-variant/10 hover:shadow-sm cursor-pointer relative transition-all"
+            onClick={() => setIsCheckoutOpen(true)}
+            className="flex items-center gap-1.5 bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/20 px-3 py-1.5 rounded-xl text-yellow-500 text-xs font-bold transition cursor-pointer"
           >
-            <ShoppingCart className="w-4 h-4 text-primary dark:text-cream" />
-            {cartCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-secondary text-white text-[10px] font-bold font-mono h-4 w-4 rounded-full flex items-center justify-center animate-bounce">
-                {cartCount}
+            <Coins className="w-4 h-4" />
+            <span className="font-mono">{coinsCount} 🪙</span>
+          </button>
+
+          {/* User Verification / Account preview summary */}
+          <button
+            onClick={() => setActiveTab("verification")}
+            className="flex items-center gap-1.5 bg-white/5 border border-white/10 p-0.5 rounded-full hover:border-[#FF5C00]/60 transition select-none cursor-pointer"
+          >
+            <div className="w-7 h-7 rounded-full border border-brand-green/45 p-0.5 overflow-hidden flex items-center justify-center bg-neutral-900">
+              <img
+                referrerPolicy="no-referrer"
+                src={userProfile.imageUrl}
+                alt={userProfile.moniker}
+                className="w-full h-full rounded-full object-cover"
+              />
+            </div>
+            {userProfile.isVerified && (
+              <span className="material-symbols-outlined text-brand-green text-xs font-bold leading-none select-none pr-1">
+                verified
               </span>
             )}
           </button>
 
-          {/* Log Out */}
-          <button
-            onClick={() => {
-              setUser(null);
-              setAppState("auth");
-            }}
-            className="p-2.5 bg-white/40 dark:bg-white/10 rounded-full border border-outline-variant/10 hover:bg-red-50 dark:hover:bg-red-950/20 text-outline hover:text-red-600 cursor-pointer transition-colors"
-            title="Logout and Lock Account"
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
-
-          {/* Mobile responsive toggle */}
-          <button
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="lg:hidden p-2 bg-primary text-white rounded-xl cursor-pointer"
-          >
-            {isMobileMenuOpen ? (
-              <X className="w-5 h-5" />
-            ) : (
-              <Menu className="w-5 h-5" />
-            )}
-          </button>
-        </div>
-      </nav>
-
-      {/* Mobile Nav Menu Drawer */}
-      <AnimatePresence>
-        {isMobileMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className={`fixed top-20 w-full z-30 flex flex-col space-y-4 p-6 border-b lg:hidden ${
-              theme === "dark"
-                ? "bg-[#061b0e] border-white/10"
-                : "bg-cream border-outline-variant/10"
-            }`}
-          >
-            {[
-              {
-                id: "dashboard",
-                label: "My Family",
-                icon: <Users className="w-4 h-4" />,
-              },
-              {
-                id: "advisor",
-                label: "AI consultation",
-                icon: <Brain className="w-4 h-4" />,
-              },
-              {
-                id: "marketplace",
-                label: "Supplement store",
-                icon: <Star className="w-4 h-4" />,
-              },
-              {
-                id: "delivery",
-                label: "Active shipments",
-                icon: <Truck className="w-4 h-4" />,
-              },
-              {
-                id: "rewards",
-                label: "Wellness awards",
-                icon: <Gift className="w-4 h-4" />,
-              },
-            ].map((tab) => {
-              const isSelected = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => {
-                    setActiveTab(tab.id as any);
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className={`flex items-center gap-3 p-4 text-sm font-bold font-sans rounded-2xl w-full text-left cursor-pointer transition-all ${
-                    isSelected
-                      ? "bg-primary text-white"
-                      : "text-outline hover:bg-cream-dark/20"
-                  }`}
-                >
-                  {tab.icon}
-                  {tab.label}
-                </button>
-              );
-            })}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Main workspace workspace area */}
-      <main className="flex-grow pt-28 pb-16 px-6 md:px-16 max-w-7xl mx-auto w-full">
-        {/* User Greeting Indicator */}
-        <div className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-light-outline/5 pb-5">
-          <div className="font-sans">
-            <span className="text-[10px] font-mono tracking-widest text-outline uppercase">
-              Welcome to your workspace
-            </span>
-            <h2 className="font-serif text-2xl md:text-3xl font-extrabold text-primary dark:text-cream leading-none mt-1">
-              Sarah's Wellness Sanctuary
-            </h2>
-          </div>
-
-          <div className="flex items-center gap-3 text-xs bg-white/75 dark:bg-white/5 border border-outline-variant/10 px-4.5 py-2.5 rounded-full font-sans font-semibold">
-            <div className="p-1 bgColor bg-secondary text-white rounded-full">
-              <ShieldCheck className="w-3.5 h-3.5" />
-            </div>
-            Dixon Identity Verified Member
-          </div>
-        </div>
-
-        {/* Navigation Router views */}
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeTab}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.28 }}
-          >
-            {activeTab === "dashboard" && (
-              <FamilyDashboard onAskAdvisor={handleAskAdvisor} />
-            )}
-
-            {activeTab === "advisor" && (
-              <WellnessAdvisor
-                overridePrompt={advisorOverride}
-                clearOverride={() => setAdvisorOverride("")}
-              />
-            )}
-
-            {activeTab === "marketplace" && (
-              <Marketplace
-                onAddToCart={handleAddToCart}
-                activeCartCount={cartCount}
-              />
-            )}
-
-            {activeTab === "delivery" && <DeliveryTracking />}
-
-            {activeTab === "rewards" && (
-              <RewardsSharing
-                currentCredits={currentCredits}
-                onRedeemCredits={applyRedeemCredits}
-              />
-            )}
-          </motion.div>
-        </AnimatePresence>
-      </main>
-
-      {/* Dynamic Slide Drawer for Shopping Cart */}
-      <AnimatePresence>
-        {isCartOpen && (
-          <>
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.5 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsCartOpen(false)}
-              className="fixed inset-0 bg-[#061b0e] z-50 cursor-pointer"
-            />
-
-            {/* Slide block */}
-            <motion.div
-              initial={{ x: "100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 180 }}
-              className={`fixed top-0 right-0 h-full w-full max-w-md z-50 shadow-2xl flex flex-col justify-between ${
-                theme === "dark"
-                  ? "bg-[#092212] text-cream border-l border-white/5"
-                  : "bg-white text-primary border-l border-outline-variant/20"
-              }`}
+          {/* Notification Inbox Icon */}
+          <div className="relative">
+            <button
+              onClick={() => setShowNotificationDrawer(!showNotificationDrawer)}
+              className="w-9 h-9 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-white/70 relative cursor-pointer"
             >
-              {/* Cart Drawer Header */}
-              <div className="p-6 border-b border-light-outline/5 bg-cream/10 flex justify-between items-center bg-cream/35">
-                <div className="flex items-center gap-1.5">
-                  <ShoppingCart className="w-5 h-5 text-secondary" />
-                  <h4 className="font-serif text-xl font-bold">
-                    Shopping Cart
-                  </h4>
-                  <span className="text-xs px-2.5 py-0.5 bg-primary/5 text-primary border border-outline-variant/10 rounded-full font-bold ml-1">
-                    {cartCount} items
-                  </span>
-                </div>
-                <button
-                  onClick={() => setIsCartOpen(false)}
-                  className="p-1.5 hover:bg-primary/5 rounded-full cursor-pointer transition-colors"
+              <Bell className="w-4 h-4" />
+              {notifications.length > 0 && (
+                <div className="absolute top-1 right-1 w-2 h-2 bg-brand-green rounded-full" />
+              )}
+            </button>
+
+            {/* In-app Instant Notifications drop list */}
+            <AnimatePresence>
+              {showNotificationDrawer && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 10 }}
+                  className="absolute right-0 mt-2.5 w-72 bg-surface-container border border-white/10 rounded-2xl p-4 shadow-2xl z-50 text-left glass-panel"
                 >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              {/* Drawer Content */}
-              <div className="flex-1 overflow-y-auto p-6 space-y-4 scrollbar-none">
-                {/* Checkout processing overlays */}
-                {checkoutStep === "processing" && (
-                  <div className="h-full flex flex-col items-center justify-center text-center space-y-6">
-                    <div className="relative">
-                      <div className="w-16 h-16 rounded-full border-4 border-secondary border-t-transparent animate-spin" />
-                      <Lock className="w-6 h-6 text-[#2c676c] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
-                    </div>
-                    <div>
-                      <h4 className="font-serif text-xl font-bold text-[#336d72]">
-                        Flutterwave Processing
-                      </h4>
-                      <p className="text-xs text-outline mt-1.5 max-w-xs mx-auto leading-relaxed">
-                        Initializing secure payment gateways. Validating
-                        credentials and card details across verification
-                        accounts...
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {checkoutStep === "success" && (
-                  <div className="h-full flex flex-col items-center justify-center text-center space-y-5 px-4">
-                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center text-green-700 mx-auto shadow">
-                      <CheckCircle2 className="w-10 h-10 animate-bounce" />
-                    </div>
-                    <div className="space-y-1 font-sans">
-                      <h4 className="font-serif text-2xl font-bold text-primary">
-                        Transaction Secured!
-                      </h4>
-                      <p className="text-[10px] font-mono text-outline uppercase tracking-wider">
-                        CODE SCAN APPROVED
-                      </p>
-                    </div>
-                    <p className="text-xs text-outline max-w-xs leading-relaxed">
-                      We've successfully debited coordinates via secure
-                      Flutterwave client parameter rules. Transaction code:
-                    </p>
-                    <span className="font-mono bg-cream py-1.5 px-4 rounded-xl border border-outline-variant/20 text-xs font-bold font-mono text-primary select-all">
-                      {lastTxId}
+                  <div className="flex justify-between items-center border-b border-white/5 pb-2 mb-2">
+                    <span className="text-[10px] font-mono uppercase tracking-widest text-[#939393]">
+                      Secure Signal Log
                     </span>
                     <button
-                      onClick={() => {
-                        setCheckoutStep("none");
-                        setIsCartOpen(false);
-                        setActiveTab("delivery");
-                      }}
-                      className="px-6 h-10 bg-primary hover:bg-neutral-800 text-white font-bold rounded-full text-xs transition-colors cursor-pointer"
+                      onClick={() => setNotifications([])}
+                      className="text-[9px] text-[#ff6161] font-mono tracking-wider cursor-pointer"
                     >
-                      Track Order Delivery
+                      CLEAR ALL
                     </button>
                   </div>
-                )}
-
-                {/* Normal cart items layout */}
-                {checkoutStep === "none" && (
-                  <>
-                    {cart.length === 0 ? (
-                      <div className="h-72 flex flex-col items-center justify-center text-center text-outline">
-                        <ShoppingCart className="w-8 h-8 text-[#eae8e3] mb-3" />
-                        <p className="text-xs font-semibold">
-                          Your supplement cart is currently empty.
-                        </p>
-                        <p className="text-[11px] mt-1 text-outline-variant shadow-inner">
-                          Browse the supplement store to add selections.
-                        </p>
-                      </div>
+                  <div className="space-y-3 max-h-60 overflow-y-auto custom-scrollbar">
+                    {notifications.length === 0 ? (
+                      <span className="text-[10px] text-white/30 block py-6 text-center">
+                        Diagnostics empty. Match signals clear.
+                      </span>
                     ) : (
-                      <div className="space-y-4">
-                        {cart.map((item, idx) => {
-                          const unitPrice = item.isSub
-                            ? item.product.price * 0.85
-                            : item.product.price;
-                          return (
-                            <div
-                              key={idx}
-                              className="p-3.5 bg-cream/35 dark:bg-white/5 rounded-2xl border border-outline-variant/10 flex gap-3.5 items-center justify-between"
-                            >
-                              <img
-                                src={item.product.image}
-                                alt={item.product.name}
-                                referrerPolicy="no-referrer"
-                                className="w-14 h-14 rounded-xl object-cover shrink-0"
-                              />
-
-                              <div className="flex-1 min-w-0 font-sans">
-                                <h5 className="font-serif text-xs font-bold text-primary dark:text-cream truncate">
-                                  {item.product.name}
-                                </h5>
-                                <div className="flex items-center gap-1.5 mt-0.5">
-                                  <span className="text-[10px] text-outline">
-                                    Qty: {item.qty}
-                                  </span>
-                                  <span className="text-[10px] font-bold text-primary bg-primary/5 dark:bg-white/10 dark:text-cream rounded-full px-2">
-                                    {item.isSub
-                                      ? "Monthly Subscription"
-                                      : "One-Time"}
-                                  </span>
-                                </div>
-                              </div>
-
-                              <div className="text-right shrink-0">
-                                <p className="font-serif text-xs font-bold text-primary dark:text-cream price font-bold">
-                                  ${(unitPrice * item.qty).toFixed(2)}
-                                </p>
-                                <button
-                                  onClick={() =>
-                                    handleRemoveFromCart(
-                                      item.product.id,
-                                      item.isSub,
-                                    )
-                                  }
-                                  className="text-[10px] font-semibold text-red-600 hover:underline mt-1 cursor-pointer inline-flex items-center gap-1 align-middle"
-                                >
-                                  <Trash2 className="w-3 h-3" />
-                                  Remove
-                                </button>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
+                      notifications.map((n) => (
+                        <div
+                          key={n.id}
+                          className="flex gap-2.5 items-center bg-black/30 p-2 rounded-xl border border-white/5"
+                        >
+                          <img
+                            referrerPolicy="no-referrer"
+                            src={n.partnerAvatar}
+                            alt={n.userMoniker}
+                            className="w-8 h-8 rounded-full object-cover border border-white/10"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <span className="block text-[10px] font-bold text-white leading-none">
+                              {n.userMoniker}
+                            </span>
+                            <span className="text-[9px] text-white/50 block truncate mt-0.5">
+                              {n.message}
+                            </span>
+                          </div>
+                          <span className="text-[8px] font-mono text-brand-green italic bg-brand-green/5 px-1 py-0.2 rounded shrink-0">
+                            {n.extra}
+                          </span>
+                        </div>
+                      ))
                     )}
-                  </>
-                )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Framework Body: Desktop multi-column grid & mobile single focus */}
+      <main className="w-full max-w-7xl mx-auto px-4 py-6 flex-1 flex flex-col lg:flex-row gap-6 items-start justify-center relative z-20">
+        {/* Left Side: Desktop navigation side panel (hidden on smaller screen sizes) */}
+        <section
+          id="desktop-side-nav"
+          className="hidden lg:flex flex-col gap-2.5 w-64 bg-surface-container border border-white/5 p-4 rounded-2xl glass-card text-left"
+        >
+          <span className="text-[10.5px] font-mono tracking-widest text-white/30 uppercase pl-2 select-none">
+            System Submodules
+          </span>
+
+          <button
+            onClick={() => setActiveTab("swipe")}
+            className={`px-4 py-3 rounded-xl text-xs font-semibold flex items-center justify-between transition cursor-pointer ${activeTab === "swipe" ? "bg-brand-green text-black font-extrabold shadow-md" : "text-white/70 hover:bg-white/5"}`}
+          >
+            <div className="flex items-center gap-3">
+              <span className="material-symbols-outlined text-base">radar</span>
+              <span>Radar Swipe Feed</span>
+            </div>
+            <ArrowRight className="w-3.5 h-3.5 opacity-40 shrink-0" />
+          </button>
+
+          <button
+            onClick={() => setActiveTab("matchmaker")}
+            className={`px-4 py-3 rounded-xl text-xs font-semibold flex items-center justify-between transition cursor-pointer ${activeTab === "matchmaker" ? "bg-brand-purple text-black font-extrabold shadow-md" : "text-white/70 hover:bg-white/5"}`}
+          >
+            <div className="flex items-center gap-3">
+              <span className="material-symbols-outlined text-base text-glow-purple">
+                magic_exchange
+              </span>
+              <span>Gemini Matchmaker</span>
+            </div>
+            <ArrowRight className="w-3.5 h-3.5 opacity-40 shrink-0" />
+          </button>
+
+          <button
+            onClick={() => setActiveTab("explore")}
+            className={`px-4 py-3 rounded-xl text-xs font-semibold flex items-center justify-between transition cursor-pointer ${activeTab === "explore" ? "bg-brand-green text-black font-extrabold shadow-md" : "text-white/70 hover:bg-white/5"}`}
+          >
+            <div className="flex items-center gap-3">
+              <span className="material-symbols-outlined text-base">hub</span>
+              <span>Gatherings & Tribes</span>
+            </div>
+            <ArrowRight className="w-3.5 h-3.5 opacity-40 shrink-0" />
+          </button>
+
+          <button
+            onClick={() => setActiveTab("chats")}
+            className={`px-4 py-3 rounded-xl text-xs font-semibold flex items-center justify-between transition cursor-pointer ${activeTab === "chats" ? "bg-brand-green text-black font-extrabold shadow-md" : "text-white/70 hover:bg-white/5"}`}
+          >
+            <div className="flex items-center gap-3">
+              <span className="material-symbols-outlined text-base">
+                security_key
+              </span>
+              <span>Encrypted Chats</span>
+            </div>
+            {sessionsUnreadCount() > 0 && (
+              <span className="bg-brand-green text-black font-mono font-bold text-[9px] px-1.5 py-0.5 rounded-full">
+                {sessionsUnreadCount()}
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={() => setActiveTab("verification")}
+            className={`px-4 py-3 rounded-xl text-xs font-semibold flex items-center justify-between transition cursor-pointer ${activeTab === "verification" ? "bg-brand-green text-black font-extrabold shadow-md" : "text-white/70 hover:bg-white/5"}`}
+          >
+            <div className="flex items-center gap-3">
+              <span className="material-symbols-outlined text-base">
+                face_5
+              </span>
+              <span>Anti-Catfish Scanner</span>
+            </div>
+            <ArrowRight className="w-3.5 h-3.5 opacity-40 shrink-0" />
+          </button>
+
+          {/* User tribal active logs statistics */}
+          <div className="mt-6 border-t border-white/[0.04] pt-4 px-2 space-y-3 text-left">
+            <span className="text-[9px] font-mono tracking-wider text-white/30 uppercase block">
+              ACTIVE CONNECTIONS SUMMARY
+            </span>
+
+            <div className="flex justify-between items-center text-xs text-white/70">
+              <span className="flex items-center gap-1.5">
+                <Compass className="w-3.5 h-3.5 text-brand-green" /> Linked
+                Tribes
+              </span>
+              <span className="font-mono text-[10px] text-white/50">
+                {userTribeKeys.length} nodes
+              </span>
+            </div>
+
+            <div className="flex justify-between items-center text-xs text-white/70">
+              <span className="flex items-center gap-1.5">
+                <Award className="w-3.5 h-3.5 text-brand-green" /> Safety Status
+              </span>
+              <span className="text-[10px] text-brand-green font-mono uppercase font-bold">
+                {userProfile.isVerified ? "Green verified ✓" : "Scan Pending"}
+              </span>
+            </div>
+          </div>
+
+          {/* Interactive Platform Traffic Overdrive Panel */}
+          <div
+            id="traffic-multiplier-console"
+            className="mt-5 p-3.5 bg-white/5 rounded-xl border border-white/5 text-left relative overflow-hidden"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-1.5">
+                <span className="relative flex h-2 w-2">
+                  <span
+                    className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${trafficMode === "normal" ? "bg-emerald-400" : trafficMode === "heavy" ? "bg-yellow-400" : "bg-rose-500"}`}
+                  ></span>
+                  <span
+                    className={`relative inline-flex rounded-full h-2 w-2 ${trafficMode === "normal" ? "bg-emerald-400" : trafficMode === "heavy" ? "bg-yellow-400" : "bg-rose-500"}`}
+                  ></span>
+                </span>
+                <span className="text-[9px] font-mono uppercase tracking-widest text-white/50">
+                  PLATFORM TRAFFIC
+                </span>
               </div>
+              <span className="text-[8px] font-mono text-white/30 truncate">
+                CONTROLLER
+              </span>
+            </div>
 
-              {/* Cart Drawer Footer */}
-              {checkoutStep === "none" && cart.length > 0 && (
-                <div className="p-6 border-t border-outline-variant/15 bg-cream/15">
-                  <div className="space-y-3 font-sans">
-                    {/* Subtotal */}
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="text-outline font-medium">
-                        Subtotal Selected
-                      </span>
-                      <span className="font-bold text-primary dark:text-cream font-mono">
-                        ${cartSubtotal.toFixed(2)}
-                      </span>
+            <div className="mb-2">
+              <div className="text-lg font-mono font-bold text-white tracking-widest flex items-baseline gap-1 animate-pulse-subtle">
+                {activePeers.toLocaleString()}
+                <span className="text-[9px] text-brand-green font-normal tracking-normal uppercase shrink-0 font-sans">
+                  Active Peers
+                </span>
+              </div>
+              <p className="text-[9px] text-white/40 leading-tight">
+                Live computational channels connected within your Kampala
+                cluster coordinate node.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-3 gap-1 pt-1.5 border-t border-white/[0.04]">
+              <button
+                onClick={() => setTrafficMode("normal")}
+                className={`py-1 rounded text-[8.5px] font-bold uppercase tracking-tight transition cursor-pointer ${trafficMode === "normal" ? "bg-[#ff5e00] text-black font-extrabold shadow-[0_0_8px_rgba(255,94,0,0.3)]" : "bg-white/5 text-white/60 hover:text-white hover:bg-white/10"}`}
+              >
+                Normal
+              </button>
+              <button
+                onClick={() => setTrafficMode("heavy")}
+                className={`py-1 rounded text-[8.5px] font-bold uppercase tracking-tight transition cursor-pointer ${trafficMode === "heavy" ? "bg-yellow-500 text-black font-extrabold shadow-[0_0_8px_rgba(234,179,8,0.3)]" : "bg-white/5 text-white/60 hover:text-white hover:bg-white/10"}`}
+              >
+                Heavy
+              </button>
+              <button
+                onClick={() => setTrafficMode("overclocked")}
+                className={`py-1 rounded text-[8.5px] font-bold uppercase tracking-tight transition cursor-pointer ${trafficMode === "overclocked" ? "bg-gradient-to-r from-red-500 to-rose-600 text-white font-extrabold shadow-[0_0_12px_rgba(244,63,94,0.55)] animate-pulse" : "bg-white/5 text-white/60 hover:text-white hover:bg-white/10"}`}
+              >
+                Overdrive
+              </button>
+            </div>
+
+            {trafficMode === "overclocked" && (
+              <div className="mt-2 text-[8px] font-mono text-rose-400 capitalize bg-rose-500/10 p-1 rounded border border-rose-500/20 animate-pulse flex items-center gap-1 leading-tight">
+                ⚠️ Overclock active! Multi-channel match routing queues running
+                at max capacity.
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* Center Canvas: Active tab rendering dynamic view content ports */}
+        <section
+          id="active-viewport-engine"
+          className="w-full max-w-lg lg:max-w-none flex-1"
+        >
+          <AnimatePresence mode="wait">
+            {activeTab === "swipe" && (
+              <motion.div
+                key="swipe"
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0 }}
+                className="flex justify-center"
+              >
+                {activeProfile ? (
+                  <SwipeCard
+                    profile={activeProfile}
+                    onLike={handleLike}
+                    onPass={handlePass}
+                    matchMode={matchMode}
+                    onMatchModeChange={setMatchMode}
+                    coinsCount={coinsCount}
+                    availableSuperLikes={2}
+                  />
+                ) : (
+                  <div className="w-full max-w-sm h-[600px] bg-surface-container border border-white/5 rounded-2xl p-8 flex flex-col items-center justify-center text-center space-y-6 glass-card relative overflow-hidden">
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-48 bg-brand-purple/10 rounded-full filter blur-3xl" />
+
+                    <div className="w-16 h-16 rounded-2xl bg-brand-purple/10 border border-brand-purple/30 flex items-center justify-center text-brand-purple mb-2">
+                      <Compass className="w-8 h-8 animate-spin" />
                     </div>
 
-                    {/* Applied Credits if any */}
-                    <div className="flex justify-between items-center text-xs py-1 text-green-700">
-                      <span className="font-semibold flex items-center gap-1 text-xs">
-                        <Wallet className="w-3.5 h-3.5 text-green-700" />{" "}
-                        Applicable Credits Discount (100% applied)
-                      </span>
-                      <span className="font-bold font-mono">
-                        -${Math.min(cartSubtotal, currentCredits).toFixed(2)}
-                      </span>
+                    <div className="space-y-2">
+                      <h3 className="font-display font-medium text-lg text-white">
+                        Grid Coordinates Exhausted
+                      </h3>
+                      <p className="text-xs text-white/60 leading-relaxed px-4">
+                        All profiles matching{" "}
+                        <strong className="text-brand-green">
+                          {matchMode}
+                        </strong>{" "}
+                        mode nearby have been indexed. Expand parameters using
+                        the semantic matchmaking terminal.
+                      </p>
                     </div>
 
-                    <div className="border-t border-outline-variant/10 my-3" />
-
-                    {/* Final Pay Amount */}
-                    <div className="flex justify-between items-baseline">
-                      <span className="text-sm font-bold text-primary dark:text-cream">
-                        Grand Total Billed
-                      </span>
-                      <span
-                        className="font-serif text-3xl font-extrabold text-[#11351e]"
-                        id="cart-grand-total"
-                      >
-                        ${Math.max(0, cartSubtotal - currentCredits).toFixed(2)}
-                      </span>
-                    </div>
-
-                    {/* Flutterwave Pay secure action */}
                     <button
-                      onClick={handleFlutterwaveCheckout}
-                      className="w-full h-12 bg-primary text-white hover:bg-neutral-800 rounded-full font-serif text-md font-bold transition-all shadow-lg flex items-center justify-center gap-2 mt-4 cursor-pointer"
+                      onClick={() => setActiveTab("matchmaker")}
+                      className="px-6 py-3 bg-brand-purple hover:bg-opacity-90 text-black font-bold text-xs rounded-xl transition tracking-wider uppercase font-sans flex items-center gap-2 cursor-pointer shadow-lg"
                     >
-                      <Lock className="w-4 h-4 text-white" />
-                      Secure with Flutterwave Gateway
+                      Initialize Gemini Matchmaker{" "}
+                      <Sparkles className="w-4 h-4 fill-black" />
                     </button>
 
-                    <p className="text-[10px] text-center text-outline leading-tight mt-1 pt-1.5 font-sans">
-                      By proceeding, you agree to DiXon subscription terms.
-                      Cancel penalty free via dashboard at any time. Verified
-                      non-toxic.
-                    </p>
+                    <button
+                      onClick={() => {
+                        setCurrentProfileIdx(0);
+                      }}
+                      className="text-xs text-white/40 hover:text-white transition cursor-pointer underline"
+                    >
+                      Re-calibrate Grid Feed
+                    </button>
                   </div>
-                </div>
-              )}
-            </motion.div>
-          </>
+                )}
+              </motion.div>
+            )}
+
+            {activeTab === "verification" && (
+              <motion.div
+                key="verification"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+              >
+                <BiometricsScanner
+                  onVerifySuccess={handleVerifySuccess}
+                  isAlreadyVerified={userProfile.isVerified}
+                />
+              </motion.div>
+            )}
+
+            {activeTab === "matchmaker" && (
+              <motion.div
+                key="matchmaker"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+              >
+                <GeminiMatchmaker
+                  onSelectProfile={handleSelectMatchedProfileFromAI}
+                  matchMode={matchMode}
+                />
+              </motion.div>
+            )}
+
+            {activeTab === "chats" && (
+              <motion.div
+                key="chats"
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0 }}
+              >
+                <ChatView
+                  activeSessionId={activeChatId}
+                  userAvatar={userProfile.imageUrl}
+                />
+              </motion.div>
+            )}
+
+            {activeTab === "explore" && (
+              <motion.div
+                key="explore"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+              >
+                <MeetupsView
+                  onTribeJoined={handleTribeJoinToggle}
+                  userTribeKeys={userTribeKeys}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </section>
+      </main>
+
+      {/* Exquisite Fullscreen Stories / Tiktok reels view portals */}
+      <AnimatePresence>
+        {isStoriesOpen && (
+          <StoriesView onClose={() => setIsStoriesOpen(false)} />
         )}
       </AnimatePresence>
 
-      {/* Humble Footer brand credits */}
-      <footer className="py-8 bg-cream-dark/15 border-t border-light-outline/5 text-center text-xs text-outline font-medium shrink-0 font-sans">
-        <p>© 2026 DiXon Premium Supplement Marketplace. All rights reserved.</p>
-        <p className="text-[10px] text-[#737973] uppercase tracking-widest mt-1">
-          Nurtured Trust & Security
-        </p>
-      </footer>
+      {/* Flutterwave monetization gold payment flow modal overlays */}
+      <AnimatePresence>
+        {isCheckoutOpen && (
+          <FlutterwaveCheckout
+            onUpgradeCompleted={handleUpgradeCompleted}
+            onClose={() => setIsCheckoutOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Massive Mutual Match High-vibration frequency popups */}
+      <AnimatePresence>
+        {recentMatchedProfile && (
+          <div
+            id="match-celebration-canvas"
+            className="fixed inset-0 bg-black/95 z-50 flex flex-col items-center justify-center p-6"
+          >
+            <div className="absolute top-0 left-0 w-full h-full bg-radial-gradient from-brand-green/20 to-transparent filter blur-3xl pointer-events-none" />
+
+            <div className="space-y-6 text-center max-w-md relative z-10">
+              <div className="w-16 h-16 rounded-full bg-brand-green/15 flex items-center justify-center border border-brand-green/35 text-brand-green mx-auto mb-2 animate-spin duration-3000">
+                <Radio className="w-8 h-8 animate-pulse text-glow" />
+              </div>
+
+              <div className="space-y-1">
+                <h1 className="font-display font-black text-2xl sm:text-3xl tracking-widest text-brand-green text-glow leading-none">
+                  MUTUAL FREQUENCY REACHED!
+                </h1>
+                <p className="text-xs uppercase tracking-widest text-white/50 font-mono">
+                  End-to-end encrypted node connection locked
+                </p>
+              </div>
+
+              {/* Dynamic avatars display connected with glowing vector path lines */}
+              <div className="flex justify-center items-center gap-10 py-6">
+                <div className="relative">
+                  <div className="w-20 h-20 rounded-full border-2 border-brand-green p-1 overflow-hidden bg-neutral-900 select-none">
+                    <img
+                      referrerPolicy="no-referrer"
+                      src={userProfile.imageUrl}
+                      alt="user avatar"
+                      className="w-full h-full object-cover rounded-full"
+                    />
+                  </div>
+                  <span className="block mt-2 text-[10px] font-mono font-bold text-white/60">
+                    Aria (You)
+                  </span>
+                </div>
+
+                <div className="relative">
+                  {/* Dynamic wave animation connecting links between nodes */}
+                  <div className="absolute top-1/2 -left-10 h-[2px] w-10 bg-gradient-to-r from-brand-green via-brand-purple to-brand-green animate-pulse" />
+                  <div className="w-20 h-20 rounded-full border-2 border-brand-purple p-1 overflow-hidden bg-neutral-900 select-none">
+                    <img
+                      referrerPolicy="no-referrer"
+                      src={recentMatchedProfile.imageUrl}
+                      alt="partner avatar"
+                      className="w-full h-full object-cover rounded-full"
+                    />
+                  </div>
+                  <span className="block mt-2 text-[10px] font-mono font-bold text-white/60">
+                    {recentMatchedProfile.moniker}
+                  </span>
+                </div>
+              </div>
+
+              <p className="text-xs text-white/70 px-6 leading-relaxed">
+                Your high-vibe compatibility maps registered a matching vector
+                overlay sequence of{" "}
+                <strong className="text-brand-green font-mono">
+                  {recentMatchedProfile.compatibility}%
+                </strong>
+                . Elias' node server generated initial E2EE keys instantly.
+              </p>
+
+              {/* Secure Chat Link buttons */}
+              <div className="space-y-3 pt-4">
+                <button
+                  onClick={handleStartMatchChat}
+                  className="w-full py-3 bg-brand-green text-black font-semibold text-xs rounded-xl tracking-wider uppercase transition neon-glow-primary hover:bg-opacity-90 font-sans cursor-pointer block text-center select-none"
+                >
+                  Start Encrypted Chat (E2EE)
+                </button>
+                <button
+                  onClick={handleCloseMatchOverlay}
+                  className="text-xs text-white/40 hover:text-white transition cursor-pointer block mx-auto underline"
+                >
+                  Continue Swiping Grid
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Immersive Mobile Navigation Navigation Bar (visible on md to mobile displays) */}
+      <nav
+        id="mobile-nav-bar"
+        className="lg:hidden fixed bottom-0 inset-x-0 bg-[#0c0c0c]/90 border-t border-white/5 backdrop-blur-md flex justify-around py-3 px-2 z-40"
+      >
+        <button
+          onClick={() => setActiveTab("swipe")}
+          className={`flex flex-col items-center gap-1 cursor-pointer transition select-none ${activeTab === "swipe" ? "text-brand-green" : "text-[#818181] hover:text-white"}`}
+        >
+          <span className="material-symbols-outlined text-[19px]">radar</span>
+          <span className="text-[9px] font-sans font-medium">Radar</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("matchmaker")}
+          className={`flex flex-col items-center gap-1 cursor-pointer transition select-none ${activeTab === "matchmaker" ? "text-brand-purple text-glow-purple" : "text-[#818181] hover:text-white"}`}
+        >
+          <span className="material-symbols-outlined text-[19px]">
+            magic_exchange
+          </span>
+          <span className="text-[9px] font-sans font-medium">Vibes AI</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("explore")}
+          className={`flex flex-col items-center gap-1 cursor-pointer transition select-none ${activeTab === "explore" ? "text-brand-green" : "text-[#818181] hover:text-white"}`}
+        >
+          <span className="material-symbols-outlined text-[19px]">hub</span>
+          <span className="text-[9px] font-sans font-medium">Hangouts</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("chats")}
+          className={`flex flex-col items-center gap-1 cursor-pointer transition select-none ${activeTab === "chats" ? "text-brand-green" : "text-[#818181] hover:text-white"}`}
+        >
+          <div className="relative">
+            <span className="material-symbols-outlined text-[19px]">
+              security_key
+            </span>
+            {sessionsUnreadCount() > 0 && (
+              <div className="absolute -top-1.5 -right-1.5 bg-brand-green text-black font-mono font-black text-[7.5px] w-4 h-4 rounded-full flex items-center justify-center leading-none">
+                {sessionsUnreadCount()}
+              </div>
+            )}
+          </div>
+          <span className="text-[9px] font-sans font-medium">Encrypted</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("verification")}
+          className={`flex flex-col items-center gap-1 cursor-pointer transition select-none ${activeTab === "verification" ? "text-brand-green" : "text-[#818181] hover:text-white"}`}
+        >
+          <span className="material-symbols-outlined text-[19px]">face_5</span>
+          <span className="text-[9px] font-sans font-medium">Scanner</span>
+        </button>
+      </nav>
     </div>
   );
+
+  function sessionsUnreadCount() {
+    return 1; // Elena's unread message!
+  }
 }

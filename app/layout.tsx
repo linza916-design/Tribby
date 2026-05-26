@@ -13,9 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "DiXon - Family Wellness Platform",
+  title: "Tribby - Connect with Like-minded People",
   description:
-    "DiXon is a family wellness platform that provides personalized health insights, secure medical data management, and a rewards program for healthy behaviors. Our mission is to empower families to take control of their health and well-being with trusted, secure, and innovative solutions.",
+    "Tribby is a social platform that connects people with similar interests and passions. Our mission is to create meaningful connections and foster a sense of community among users.",
 };
 
 export default function RootLayout({
