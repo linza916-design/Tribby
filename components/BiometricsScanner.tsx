@@ -1,269 +1,262 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { ShieldCheck, RefreshCw, Cpu, Award } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import {
+  Search,
+  Sparkles,
+  Music,
+  Ticket,
+  CheckCircle2,
+  TrendingUp,
+  Users,
+} from "lucide-react";
 
-interface BiometricsScannerProps {
-  onVerifySuccess: () => void;
-  isAlreadyVerified: boolean;
+import {
+  MOCK_MEETUPS,
+  MOCK_TRIBES,
+  MOCK_PROFILES,
+  INITIAL_USER_PROFILE,
+} from "../lib/data";
+
+import type { Profile, MatchMode } from "../lib/types";
+
+interface MeetupsViewProps {
+  onTribeJoined: (tribeName: string) => void;
+  userTribeKeys: string[];
+  matchMode?: MatchMode;
+  onSelectProfile?: (profile: Profile) => void;
 }
 
-export const BiometricsScanner: React.FC<BiometricsScannerProps> = ({
-  onVerifySuccess,
-  isAlreadyVerified,
+interface ActivityLog {
+  id: string;
+  timestamp: string;
+  increment: number;
+  totalAfter: number;
+  isManual: boolean;
+}
+
+interface TrendingVibe {
+  tag: string;
+  count: number;
+  icon: string;
+  isHot: boolean;
+  pulseTrigger: number;
+  activityLog: ActivityLog[];
+}
+
+export const MeetupsView: React.FC<MeetupsViewProps> = ({
+  onTribeJoined,
+  userTribeKeys,
+  matchMode = "dating",
+  onSelectProfile,
 }) => {
-  const [permission, setPermission] = useState<"prompt" | "granted" | "denied">(
-    "prompt",
-  );
+  const [tab, setTab] = useState<"hangouts" | "tribes">("hangouts");
+  const [search, setSearch] = useState("");
+  const [joinedMeetupIds, setJoinedMeetupIds] = useState<string[]>([]);
+  const [vibeFilter, setVibeFilter] = useState("All");
 
-  const [scanning, setScanning] = useState(false);
-  const [scanProgress, setScanProgress] = useState(0);
-  const [scanStage, setScanStage] = useState("");
-  const [success, setSuccess] = useState(isAlreadyVerified);
+  const [trendingVibes, setTrendingVibes] = useState<TrendingVibe[]>(() => {
+    const allProfiles = [INITIAL_USER_PROFILE, ...MOCK_PROFILES];
+    const counts: Record<string, number> = {};
 
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-
-  const streamRef = useRef<MediaStream | null>(null);
-
-  const scanStages = [
-    "Locking facial anchors...",
-    "Analyzing 3D topology...",
-    "Gemini anti-catfish neural check...",
-    "Hashing secure identity signature...",
-    "Registering trust vault profile...",
-  ];
-
-  const stopCamera = () => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
-
-      streamRef.current = null;
-    }
-  };
-
-  const startCamera = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: "user",
-        },
+    allProfiles.forEach((profile) => {
+      profile.tags?.forEach((tag) => {
+        counts[tag] = (counts[tag] || 0) + 1;
       });
+    });
 
-      streamRef.current = stream;
+    const icons = ["🧠", "⚡", "🎵"];
 
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
-
-      setPermission("granted");
-    } catch (err) {
-      console.warn("Camera unavailable — holographic simulator fallback.", err);
-
-      setPermission("denied");
-    }
-  };
-
-  const triggerScan = async () => {
-    setSuccess(false);
-    setScanProgress(0);
-    setScanning(true);
-
-    if (permission !== "granted") {
-      await startCamera();
-    }
-  };
+    return Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([tag, count], i) => ({
+        tag,
+        count: count * 320 + 120,
+        icon: icons[i],
+        isHot: false,
+        pulseTrigger: 0,
+        activityLog: [],
+      }));
+  });
 
   useEffect(() => {
-    if (!scanning) return;
-
     const interval = setInterval(() => {
-      setScanProgress((prev) => {
-        const next = prev + 1;
+      setTrendingVibes((prev) =>
+        prev.map((v) => {
+          const increment = Math.floor(Math.random() * 8) + 1;
+          const total = v.count + increment;
 
-        const stageIndex = Math.floor(next / 20);
-
-        setScanStage(scanStages[Math.min(stageIndex, scanStages.length - 1)]);
-
-        if (next >= 100) {
-          clearInterval(interval);
-
-          setScanning(false);
-          setSuccess(true);
-
-          stopCamera();
-
-          onVerifySuccess();
-
-          return 100;
-        }
-
-        return next;
-      });
-    }, 45);
+          return {
+            ...v,
+            count: total,
+            isHot: increment > 5,
+            pulseTrigger: increment > 5 ? v.pulseTrigger + 1 : v.pulseTrigger,
+            activityLog: [
+              {
+                id: crypto.randomUUID(),
+                timestamp: new Date().toLocaleTimeString(),
+                increment,
+                totalAfter: total,
+                isManual: false,
+              },
+              ...v.activityLog,
+            ].slice(0, 5),
+          };
+        }),
+      );
+    }, 5500);
 
     return () => clearInterval(interval);
-  }, [scanning]);
-
-  useEffect(() => {
-    return () => stopCamera();
   }, []);
 
+  const handleBoostVibe = (index: number) => {
+    setTrendingVibes((prev) => {
+      const copy = [...prev];
+      const vibe = copy[index];
+
+      copy[index] = {
+        ...vibe,
+        count: vibe.count + 15,
+        isHot: true,
+        pulseTrigger: vibe.pulseTrigger + 1,
+        activityLog: [
+          {
+            id: crypto.randomUUID(),
+            timestamp: new Date().toLocaleTimeString(),
+            increment: 15,
+            totalAfter: vibe.count + 15,
+            isManual: true,
+          },
+          ...vibe.activityLog,
+        ].slice(0, 5),
+      };
+
+      return copy;
+    });
+  };
+
+  const filteredMeetups = MOCK_MEETUPS.filter(
+    (m) =>
+      (m.title.toLowerCase().includes(search.toLowerCase()) ||
+        m.description.toLowerCase().includes(search.toLowerCase())) &&
+      (vibeFilter === "All" || m.category === vibeFilter),
+  );
+
+  const filteredTribes = MOCK_TRIBES.filter(
+    (t) =>
+      t.name.toLowerCase().includes(search.toLowerCase()) ||
+      t.description.toLowerCase().includes(search.toLowerCase()),
+  );
+
+  const matchedProfiles = MOCK_PROFILES.filter(
+    (p) => p.matchMode === matchMode,
+  ).slice(0, 6);
+
+  const handleJoinMeetup = (id: string) => {
+    setJoinedMeetupIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+
+    const compatible = MOCK_PROFILES.find((p) => p.matchMode === matchMode);
+
+    if (compatible && onSelectProfile) {
+      onSelectProfile(compatible);
+    }
+  };
+
   return (
-    <div className="w-full max-w-md mx-auto bg-surface-container-low border border-white/5 rounded-2xl p-6 glass-card relative overflow-hidden text-center">
-      {/* Glow */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-52 h-52 bg-brand-green/10 rounded-full blur-3xl pointer-events-none" />
-
-      {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex gap-2 items-center">
-          <ShieldCheck className="w-5 h-5 text-brand-green" />
-          <span className="text-xs uppercase tracking-wider text-white/60 font-semibold">
-            Biometric Guard AI
-          </span>
-        </div>
-
-        <span
-          className={`px-3 py-1 rounded-full text-[10px] font-mono uppercase
-          ${
-            success
-              ? "bg-brand-green/10 text-brand-green"
-              : "bg-white/5 text-white/50"
-          }`}
-        >
-          {success ? "Verified" : "Unverified"}
-        </span>
-      </div>
-
-      {/* Scanner Orb */}
-      <div className="relative w-52 h-52 mx-auto mb-6 rounded-full border border-white/10 overflow-hidden bg-black/40 flex items-center justify-center">
-        {/* Scan Beam */}
-        <AnimatePresence>
-          {scanning && (
-            <motion.div
-              initial={{ top: "0%" }}
-              animate={{
-                top: ["0%", "100%", "0%"],
-              }}
-              transition={{
-                repeat: Infinity,
-                duration: 3,
-                ease: "linear",
-              }}
-              className="absolute left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-brand-green to-transparent z-20"
-            />
-          )}
-        </AnimatePresence>
-
-        {/* Camera Feed */}
-        {permission === "granted" && !success && (
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            muted
-            className="w-full h-full object-cover scale-x-[-1]"
-          />
-        )}
-
-        {/* Verified State */}
-        {success && (
-          <motion.div
-            initial={{
-              scale: 0.6,
-              rotate: -30,
-            }}
-            animate={{
-              scale: 1,
-              rotate: 0,
-            }}
-            className="w-20 h-20 rounded-full bg-brand-green/10 border border-brand-green flex items-center justify-center"
-          >
-            <Award className="w-10 h-10 text-brand-green animate-bounce" />
-          </motion.div>
-        )}
-
-        {/* Idle CPU */}
-        {!success && permission !== "granted" && (
-          <div className="relative">
-            <Cpu
-              className={`w-16 h-16 text-white/20 ${
-                scanning ? "animate-spin" : ""
-              }`}
-            />
-          </div>
-        )}
-
-        {/* Diagnostics */}
-        {scanning && (
-          <div className="absolute inset-0 bg-black/30 p-4 text-left text-[10px] font-mono text-brand-green pointer-events-none">
-            <div>LOCATING EYES: OK</div>
-            <div>MESH: 2410</div>
-            <div>LIVENESS: 99.8%</div>
-            <div>FPS: 60</div>
-            <div className="text-white/60">SECURE VAULT ACTIVE</div>
-          </div>
-        )}
-      </div>
-
-      {/* Success */}
-      {success ? (
-        <div className="space-y-4">
-          <h3 className="text-lg font-bold text-white">
-            Trust Signature Unlocked
-          </h3>
-
-          <p className="text-xs text-white/60 leading-relaxed">
-            Your identity is secured by Tribby’s cryptographic biometric mesh.
-          </p>
-
+    <div className="space-y-8 text-white">
+      <div className="flex gap-3 flex-wrap">
+        {["hangouts", "tribes"].map((t) => (
           <button
-            onClick={triggerScan}
-            className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white text-xs flex items-center gap-2 mx-auto hover:bg-white/10 transition"
+            key={t}
+            onClick={() => setTab(t as "hangouts" | "tribes")}
+            className={`px-5 py-2 rounded-xl text-xs font-semibold transition ${
+              tab === t
+                ? "bg-green-400 text-black"
+                : "bg-white/10 text-white hover:bg-white/20"
+            }`}
           >
-            <RefreshCw className="w-4 h-4" />
-            Re-scan Face
+            {t === "hangouts" ? "📍 Local Hangouts" : "🔥 Tribal Nodes"}
           </button>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          <h3 className="text-base font-semibold text-white">
-            Secure Selfie Verification
-          </h3>
+        ))}
+      </div>
 
-          <p className="text-xs text-white/60 leading-relaxed">
-            Tribby prevents fake identities using live depth analysis and neural
-            trust checks.
-          </p>
+      <div className="relative">
+        <input
+          className="w-full bg-black/40 border border-white/10 rounded-xl pl-10 py-3 text-sm text-white focus:outline-none"
+          placeholder={`Search ${tab}...`}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <Search className="absolute left-3 top-3.5 w-4 h-4 text-white/40" />
+      </div>
 
-          {scanning ? (
-            <div className="space-y-2">
-              <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-brand-green rounded-full transition-all duration-300"
-                  style={{
-                    width: `${scanProgress}%`,
-                  }}
-                />
-              </div>
+      <div className="grid md:grid-cols-3 gap-4">
+        {trendingVibes.map((v, i) => (
+          <motion.div
+            key={v.tag}
+            whileTap={{ scale: 0.96 }}
+            whileHover={{ scale: 1.03 }}
+            onClick={() => handleBoostVibe(i)}
+            className={`cursor-pointer rounded-xl p-5 border ${
+              v.isHot
+                ? "border-pink-500 shadow-lg shadow-pink-500/20"
+                : "border-white/10"
+            } bg-white/5`}
+          >
+            <div className="flex justify-between">
+              <span className="text-xl">{v.icon}</span>
+              <TrendingUp className="w-4 h-4 text-green-400" />
+            </div>
 
-              <div className="flex justify-between text-[10px] font-mono text-white/50">
-                <span>{scanStage}</span>
-                <span>{scanProgress}%</span>
+            <h3 className="mt-3 font-semibold">{v.tag}</h3>
+
+            <p className="text-green-400 text-sm mt-1">
+              {v.count.toLocaleString()} syncs
+            </p>
+          </motion.div>
+        ))}
+      </div>
+
+      <div>
+        <h3 className="text-xs uppercase tracking-widest text-white/50 mb-4 flex items-center gap-2">
+          <Users className="w-4 h-4" />
+          Recommended Connections
+        </h3>
+
+        <div className="grid md:grid-cols-3 gap-5">
+          {matchedProfiles.map((profile) => (
+            <div
+              key={profile.id}
+              className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden"
+            >
+              <img
+                src={profile.imageUrl}
+                alt={profile.moniker}
+                className="w-full h-48 object-cover"
+              />
+
+              <div className="p-5">
+                <h3 className="font-semibold">{profile.moniker}</h3>
+
+                <p className="text-xs text-white/60 mt-2">{profile.bio}</p>
+
+                <button
+                  onClick={() => onSelectProfile?.(profile)}
+                  className="w-full mt-5 py-3 rounded-xl bg-green-400 text-black font-semibold"
+                >
+                  View Match
+                </button>
               </div>
             </div>
-          ) : (
-            <button
-              onClick={triggerScan}
-              className="w-full py-3 bg-brand-green text-black font-semibold rounded-xl text-xs uppercase tracking-wider hover:opacity-90 active:scale-95 transition"
-            >
-              Scan My Face
-            </button>
-          )}
+          ))}
         </div>
-      )}
+      </div>
     </div>
   );
 };
 
-export default BiometricsScanner;
+export default MeetupsView;

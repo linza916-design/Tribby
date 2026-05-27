@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import React, { useEffect, useMemo, useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import {
   Search,
   Sparkles,
@@ -42,14 +42,21 @@ interface TrendingVibe {
   activityLog: ActivityLog[];
 }
 
+const TABS = [
+  { key: "hangouts", label: "📍 Local Hangouts" },
+  { key: "tribes", label: "🔥 Tribal Nodes" },
+] as const;
+
 export const MeetupsView: React.FC<MeetupsViewProps> = ({
   onTribeJoined,
   userTribeKeys,
 }) => {
+  const prefersReducedMotion = useReducedMotion();
+
   const [tab, setTab] = useState<"hangouts" | "tribes">("hangouts");
   const [search, setSearch] = useState("");
   const [joinedMeetupIds, setJoinedMeetupIds] = useState<string[]>([]);
-  const [vibeFilter, setVibeFilter] = useState("All");
+  const [vibeFilter] = useState("All");
 
   const [trendingVibes, setTrendingVibes] = useState<TrendingVibe[]>(() => {
     const allProfiles = [INITIAL_USER_PROFILE, ...MOCK_PROFILES];
@@ -79,11 +86,14 @@ export const MeetupsView: React.FC<MeetupsViewProps> = ({
   });
 
   useEffect(() => {
+    if (prefersReducedMotion) return;
+
     const interval = setInterval(() => {
       setTrendingVibes((prev) =>
         prev.map((v) => {
           const now = Date.now();
           const isSpike = Math.random() > 0.85;
+
           const increment = isSpike
             ? Math.floor(Math.random() * 8) + 12
             : Math.floor(Math.random() * 3) + 1;
@@ -111,7 +121,7 @@ export const MeetupsView: React.FC<MeetupsViewProps> = ({
     }, 5500);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [prefersReducedMotion]);
 
   const handleBoostVibe = (index: number) => {
     setTrendingVibes((prev) => {
@@ -123,6 +133,7 @@ export const MeetupsView: React.FC<MeetupsViewProps> = ({
         count: copy[index].count + 15,
         isHot: true,
         pulseTrigger: copy[index].pulseTrigger + 1,
+        borderGlowTrigger: copy[index].borderGlowTrigger + 1,
         lastRapidIncrease: now,
         activityLog: [
           {
@@ -140,21 +151,25 @@ export const MeetupsView: React.FC<MeetupsViewProps> = ({
     });
   };
 
-  const filteredMeetups = MOCK_MEETUPS.filter((m) => {
-    const matchesSearch =
-      m.title.toLowerCase().includes(search.toLowerCase()) ||
-      m.description.toLowerCase().includes(search.toLowerCase());
+  const filteredMeetups = useMemo(() => {
+    return MOCK_MEETUPS.filter((m) => {
+      const matchesSearch =
+        m.title.toLowerCase().includes(search.toLowerCase()) ||
+        m.description.toLowerCase().includes(search.toLowerCase());
 
-    const matchesFilter = vibeFilter === "All" || m.category === vibeFilter;
+      const matchesFilter = vibeFilter === "All" || m.category === vibeFilter;
 
-    return matchesSearch && matchesFilter;
-  });
+      return matchesSearch && matchesFilter;
+    });
+  }, [search, vibeFilter]);
 
-  const filteredTribes = MOCK_TRIBES.filter(
-    (t) =>
-      t.name.toLowerCase().includes(search.toLowerCase()) ||
-      t.description.toLowerCase().includes(search.toLowerCase()),
-  );
+  const filteredTribes = useMemo(() => {
+    return MOCK_TRIBES.filter(
+      (t) =>
+        t.name.toLowerCase().includes(search.toLowerCase()) ||
+        t.description.toLowerCase().includes(search.toLowerCase()),
+    );
+  }, [search]);
 
   const handleJoinMeetup = (id: string) => {
     setJoinedMeetupIds((prev) =>
@@ -163,157 +178,372 @@ export const MeetupsView: React.FC<MeetupsViewProps> = ({
   };
 
   return (
-    <div className="space-y-8">
+    <section
+      aria-label="Meetups and tribes"
+      className="w-full space-y-6 sm:space-y-8"
+    >
+      {/* Header */}
+      <header className="space-y-2">
+        <h1 className="text-2xl sm:text-3xl font-bold text-white">
+          Discover Your Community
+        </h1>
+
+        <p className="max-w-2xl text-sm sm:text-base text-white/70 leading-relaxed">
+          Find local hangouts, trending vibes, and interest-based tribes that
+          match your energy.
+        </p>
+      </header>
+
       {/* Tabs */}
-      <div className="flex gap-3">
-        {["hangouts", "tribes"].map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t as "hangouts" | "tribes")}
-            className={`px-5 py-2 rounded-xl text-xs font-semibold transition ${
-              tab === t
-                ? "bg-green-400 text-black"
-                : "bg-white/10 text-white hover:bg-white/20"
-            }`}
-          >
-            {t === "hangouts" ? "📍 Local Hangouts" : "🔥 Tribal Nodes"}
-          </button>
-        ))}
+      <div
+        role="tablist"
+        aria-label="Meetup sections"
+        className="flex flex-col sm:flex-row gap-3"
+      >
+        {TABS.map((t) => {
+          const active = tab === t.key;
+
+          return (
+            <button
+              key={t.key}
+              role="tab"
+              type="button"
+              aria-selected={active}
+              aria-controls={`${t.key}-panel`}
+              id={`${t.key}-tab`}
+              onClick={() => setTab(t.key as "hangouts" | "tribes")}
+              className={`
+                min-h-[48px]
+                rounded-2xl
+                px-5
+                py-3
+                text-sm
+                font-semibold
+                transition-all
+                duration-200
+                focus-visible:outline-none
+                focus-visible:ring-2
+                focus-visible:ring-green-400
+                focus-visible:ring-offset-2
+                focus-visible:ring-offset-black
+                ${
+                  active
+                    ? "bg-green-400 text-black"
+                    : "bg-white/10 text-white hover:bg-white/20"
+                }
+              `}
+            >
+              {t.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Search */}
-      <div className="relative">
-        <input
-          className="w-full bg-black/40 border border-white/10 rounded-xl pl-10 py-3 text-sm text-white focus:outline-none"
-          placeholder={`Search ${tab}...`}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <Search className="absolute left-3 top-3.5 w-4 h-4 text-white/40" />
+      <div className="space-y-2">
+        <label
+          htmlFor="meetup-search"
+          className="text-sm font-medium text-white"
+        >
+          Search communities
+        </label>
+
+        <div className="relative">
+          <Search
+            aria-hidden="true"
+            className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/50"
+          />
+
+          <input
+            id="meetup-search"
+            type="search"
+            inputMode="search"
+            autoComplete="off"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={`Search ${tab}...`}
+            aria-label={`Search ${tab}`}
+            className="
+              w-full
+              rounded-2xl
+              border
+              border-white/10
+              bg-black/40
+              py-3
+              pl-11
+              pr-4
+              text-sm
+              text-white
+              placeholder:text-white/40
+              focus:outline-none
+              focus:ring-2
+              focus:ring-green-400
+              min-h-[52px]
+            "
+          />
+        </div>
       </div>
 
       {/* Trending */}
-      <div className="bg-white/5 rounded-2xl p-5 border border-white/10">
-        <div className="flex items-center gap-2 mb-5">
-          <Sparkles className="text-green-400 w-4 h-4" />
-          <span className="text-xs uppercase tracking-widest text-white/70">
+      <section
+        aria-labelledby="trending-vibes-heading"
+        className="rounded-3xl border border-white/10 bg-white/5 p-4 sm:p-6"
+      >
+        <div className="mb-5 flex items-center gap-2">
+          <Sparkles aria-hidden="true" className="h-4 w-4 text-green-400" />
+
+          <h2
+            id="trending-vibes-heading"
+            className="text-xs font-semibold uppercase tracking-[0.25em] text-white/70"
+          >
             Trending Vibes
-          </span>
+          </h2>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           {trendingVibes.map((v, i) => (
-            <motion.div
+            <motion.button
               key={v.tag}
-              whileTap={{ scale: 0.96 }}
-              whileHover={{ scale: 1.03 }}
+              type="button"
+              whileTap={prefersReducedMotion ? undefined : { scale: 0.97 }}
+              whileHover={prefersReducedMotion ? undefined : { scale: 1.02 }}
               onClick={() => handleBoostVibe(i)}
-              className={`cursor-pointer rounded-xl p-5 border transition ${
-                v.isHot
-                  ? "border-pink-500 shadow-lg shadow-pink-500/20"
-                  : "border-white/10"
-              }`}
+              aria-label={`Boost ${v.tag} vibe`}
+              className={`
+                rounded-2xl
+                border
+                p-5
+                text-left
+                transition-all
+                focus-visible:outline-none
+                focus-visible:ring-2
+                focus-visible:ring-pink-400
+                min-h-[160px]
+                ${
+                  v.isHot
+                    ? "border-pink-500 shadow-lg shadow-pink-500/20"
+                    : "border-white/10"
+                }
+                bg-black/30
+                hover:bg-black/40
+              `}
             >
-              <div className="flex justify-between">
-                <span className="text-xl">{v.icon}</span>
-                <TrendingUp className="w-4 h-4 text-green-400" />
+              <div className="flex items-center justify-between">
+                <span className="text-2xl" aria-hidden="true">
+                  {v.icon}
+                </span>
+
+                <TrendingUp
+                  aria-hidden="true"
+                  className="h-4 w-4 text-green-400"
+                />
               </div>
 
-              <h3 className="mt-3 font-semibold">{v.tag}</h3>
+              <h3 className="mt-4 text-lg font-semibold text-white">{v.tag}</h3>
 
-              <p className="text-green-400 text-sm mt-1">
+              <p className="mt-2 text-sm text-green-400">
                 {v.count.toLocaleString()} syncs
               </p>
-            </motion.div>
+
+              <span className="sr-only">
+                {v.isHot
+                  ? "Currently trending rapidly"
+                  : "Normal trend activity"}
+              </span>
+            </motion.button>
           ))}
         </div>
-      </div>
+      </section>
 
       {/* Hangouts */}
       {tab === "hangouts" && (
-        <div className="grid md:grid-cols-2 gap-5">
-          {filteredMeetups.map((m) => {
-            const joined = joinedMeetupIds.includes(m.id);
+        <section
+          id="hangouts-panel"
+          role="tabpanel"
+          aria-labelledby="hangouts-tab"
+        >
+          <div className="mb-5">
+            <h2 className="text-xl font-semibold text-white">Local Hangouts</h2>
 
-            return (
-              <div
-                key={m.id}
-                className="rounded-2xl border border-white/10 p-5 bg-white/5"
-              >
-                <h3 className="font-semibold">{m.title}</h3>
+            <p className="mt-1 text-sm text-white/60">
+              Meet people through shared experiences and events.
+            </p>
+          </div>
 
-                <p className="text-sm text-white/60 mt-2">{m.description}</p>
+          {filteredMeetups.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-white/10 p-8 text-center text-white/60">
+              No hangouts found for your search.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+              {filteredMeetups.map((m) => {
+                const joined = joinedMeetupIds.includes(m.id);
 
-                <div className="flex items-center gap-2 mt-3 text-xs text-white/70">
-                  <Music className="w-4 h-4" />
-                  {m.music}
-                </div>
+                return (
+                  <article
+                    key={m.id}
+                    className="
+                      rounded-3xl
+                      border
+                      border-white/10
+                      bg-white/5
+                      p-5
+                      backdrop-blur-xl
+                    "
+                  >
+                    <div className="space-y-4">
+                      <div>
+                        <h3 className="text-lg font-semibold text-white">
+                          {m.title}
+                        </h3>
 
-                <button
-                  onClick={() => handleJoinMeetup(m.id)}
-                  className={`w-full mt-5 py-3 rounded-xl font-semibold transition ${
-                    joined
-                      ? "bg-purple-500 text-black"
-                      : "bg-green-400 text-black hover:brightness-110"
-                  }`}
-                >
-                  {joined ? (
-                    <>
-                      <CheckCircle2 className="inline mr-2 w-4 h-4" />
-                      Joined
-                    </>
-                  ) : (
-                    <>
-                      <Ticket className="inline mr-2 w-4 h-4" />
-                      Join Meetup
-                    </>
-                  )}
-                </button>
-              </div>
-            );
-          })}
-        </div>
+                        <p className="mt-2 text-sm leading-relaxed text-white/65">
+                          {m.description}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2 text-sm text-white/75">
+                        <Music aria-hidden="true" className="h-4 w-4" />
+
+                        <span>{m.music}</span>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleJoinMeetup(m.id)}
+                        aria-pressed={joined}
+                        className={`
+                          flex
+                          min-h-[52px]
+                          w-full
+                          items-center
+                          justify-center
+                          rounded-2xl
+                          px-4
+                          py-3
+                          text-sm
+                          font-semibold
+                          transition-all
+                          focus-visible:outline-none
+                          focus-visible:ring-2
+                          focus-visible:ring-green-400
+                          ${
+                            joined
+                              ? "bg-purple-500 text-black"
+                              : "bg-green-400 text-black hover:brightness-110"
+                          }
+                        `}
+                      >
+                        {joined ? (
+                          <>
+                            <CheckCircle2
+                              aria-hidden="true"
+                              className="mr-2 h-4 w-4"
+                            />
+                            Joined
+                          </>
+                        ) : (
+                          <>
+                            <Ticket
+                              aria-hidden="true"
+                              className="mr-2 h-4 w-4"
+                            />
+                            Join Meetup
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </section>
       )}
 
       {/* Tribes */}
       {tab === "tribes" && (
-        <div className="grid md:grid-cols-3 gap-5">
-          {filteredTribes.map((t) => {
-            const joined = userTribeKeys.includes(t.name);
+        <section id="tribes-panel" role="tabpanel" aria-labelledby="tribes-tab">
+          <div className="mb-5">
+            <h2 className="text-xl font-semibold text-white">Tribal Nodes</h2>
 
-            return (
-              <div
-                key={t.id}
-                className="rounded-2xl border border-white/10 overflow-hidden bg-white/5"
-              >
-                <img
-                  src={t.imageUrl}
-                  alt={t.name}
-                  className="w-full h-36 object-cover"
-                />
+            <p className="mt-1 text-sm text-white/60">
+              Connect with people who share your passions and interests.
+            </p>
+          </div>
 
-                <div className="p-5">
-                  <h3 className="font-semibold">{t.name}</h3>
+          {filteredTribes.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-white/10 p-8 text-center text-white/60">
+              No tribes found for your search.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+              {filteredTribes.map((t) => {
+                const joined = userTribeKeys.includes(t.name);
 
-                  <p className="text-xs text-white/60 mt-2">{t.description}</p>
-
-                  <button
-                    onClick={() => onTribeJoined(t.name)}
-                    className={`w-full mt-5 py-3 rounded-xl transition ${
-                      joined
-                        ? "bg-green-400 text-black"
-                        : "bg-white/10 text-white hover:bg-white/20"
-                    }`}
+                return (
+                  <article
+                    key={t.id}
+                    className="
+                      overflow-hidden
+                      rounded-3xl
+                      border
+                      border-white/10
+                      bg-white/5
+                    "
                   >
-                    {joined ? "Synced ✓" : "Connect Node"}
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+                    <img
+                      src={t.imageUrl}
+                      alt={`${t.name} tribe`}
+                      className="h-44 w-full object-cover"
+                      loading="lazy"
+                    />
+
+                    <div className="space-y-4 p-5">
+                      <div>
+                        <h3 className="text-lg font-semibold text-white">
+                          {t.name}
+                        </h3>
+
+                        <p className="mt-2 text-sm leading-relaxed text-white/65">
+                          {t.description}
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => onTribeJoined(t.name)}
+                        aria-pressed={joined}
+                        className={`
+                          min-h-[52px]
+                          w-full
+                          rounded-2xl
+                          px-4
+                          py-3
+                          text-sm
+                          font-semibold
+                          transition-all
+                          focus-visible:outline-none
+                          focus-visible:ring-2
+                          focus-visible:ring-green-400
+                          ${
+                            joined
+                              ? "bg-green-400 text-black"
+                              : "bg-white/10 text-white hover:bg-white/20"
+                          }
+                        `}
+                      >
+                        {joined ? "Synced ✓" : "Connect Node"}
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </section>
       )}
-    </div>
+    </section>
   );
 };
 
