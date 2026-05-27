@@ -1,3 +1,5 @@
+import { StaticImport } from "next/dist/shared/lib/get-img-props";
+
 export type MatchMode = "dating" | "friendship" | "networking" | "events";
 
 export interface Profile {
@@ -40,6 +42,7 @@ export interface ChatSession {
 }
 
 export interface MeetupItem {
+  imageUrl: string | StaticImport;
   id: string;
   title: string;
   description: string;

@@ -1,19 +1,22 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useId } from "react";
-
+import React, { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
-
-import { motion, useReducedMotion } from "framer-motion";
-
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
   Search,
-  Sparkles,
   Music,
-  Ticket,
-  CheckCircle2,
   TrendingUp,
   Users,
+  Sparkles,
+  Ticket,
+  CheckCircle2,
+  Flame,
+  Compass,
+  Bell,
+  Radio,
+  Cpu,
+  ShieldCheck,
 } from "lucide-react";
 
 import {
@@ -21,11 +24,10 @@ import {
   MOCK_TRIBES,
   MOCK_PROFILES,
   INITIAL_USER_PROFILE,
+  MOCK_NOTIFICATIONS,
 } from "../lib/data";
 
-import type { Profile } from "../lib/types";
-
-type MatchMode = "dating" | "friends" | "networking";
+import type { Profile, MatchMode } from "../lib/types";
 
 interface MeetupsViewProps {
   onTribeJoined: (tribeName: string) => void;
@@ -47,65 +49,50 @@ interface TrendingVibe {
   count: number;
   icon: string;
   isHot: boolean;
-  lastRapidIncrease: number;
   pulseTrigger: number;
-  borderGlowTrigger: number;
   activityLog: ActivityLog[];
 }
 
-const tabs = [
-  {
-    key: "hangouts",
-    label: "📍 Local Hangouts",
-  },
-  {
-    key: "tribes",
-    label: "🔥 Tribal Nodes",
-  },
-] as const;
+const categories = ["All", "Music", "Tech", "Art", "Gaming", "Fitness"];
 
-export function MeetupsView({
-  userTribeKeys,
+export const MeetupsView: React.FC<MeetupsViewProps> = ({
   onTribeJoined,
-  onSelectProfile,
+  userTribeKeys,
   matchMode,
-}: MeetupsViewProps) {
+  onSelectProfile,
+}) => {
   const shouldReduceMotion = useReducedMotion();
 
-  const searchId = useId();
-
   const [tab, setTab] = useState<"hangouts" | "tribes">("hangouts");
-
   const [search, setSearch] = useState("");
-
   const [joinedMeetupIds, setJoinedMeetupIds] = useState<string[]>([]);
-
   const [vibeFilter, setVibeFilter] = useState("All");
+  const [showNotifications, setShowNotifications] = useState(false);
+
+  const [notifications] = useState(MOCK_NOTIFICATIONS);
 
   const [trendingVibes, setTrendingVibes] = useState<TrendingVibe[]>(() => {
     const allProfiles = [INITIAL_USER_PROFILE, ...MOCK_PROFILES];
 
-    const tagCounts: Record<string, number> = {};
+    const counts: Record<string, number> = {};
 
     allProfiles.forEach((profile) => {
-      profile.tags?.forEach((tag: string) => {
-        tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+      profile.tags?.forEach((tag) => {
+        counts[tag] = (counts[tag] || 0) + 1;
       });
     });
 
     const icons = ["🧠", "⚡", "🎵"];
 
-    return Object.entries(tagCounts)
+    return Object.entries(counts)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 3)
-      .map(([tag, freq], index) => ({
+      .map(([tag, count], i) => ({
         tag,
-        count: freq * 314 + 140,
-        icon: icons[index % icons.length],
+        count: count * 320 + 120,
+        icon: icons[i],
         isHot: false,
-        lastRapidIncrease: 0,
         pulseTrigger: 0,
-        borderGlowTrigger: 0,
         activityLog: [],
       }));
   });
@@ -114,77 +101,38 @@ export function MeetupsView({
     const interval = setInterval(() => {
       setTrendingVibes((prev) =>
         prev.map((v) => {
-          const now = Date.now();
-
-          const isSpike = Math.random() > 0.85;
-
-          const increment = isSpike
-            ? Math.floor(Math.random() * 8) + 12
-            : Math.floor(Math.random() * 3) + 1;
-
-          const nextCount = v.count + increment;
-
-          const log: ActivityLog = {
-            id: `${now}-${Math.random()}`,
-            timestamp: new Date(now).toLocaleTimeString(),
-            increment,
-            totalAfter: nextCount,
-            isManual: false,
-          };
+          const increment = Math.floor(Math.random() * 8) + 1;
 
           return {
             ...v,
-            count: nextCount,
-            isHot: isSpike,
-            lastRapidIncrease: isSpike ? now : v.lastRapidIncrease,
+            count: v.count + increment,
+            isHot: increment > 5,
             pulseTrigger: increment > 5 ? v.pulseTrigger + 1 : v.pulseTrigger,
-            activityLog: [log, ...v.activityLog].slice(0, 5),
+            activityLog: [
+              {
+                id: crypto.randomUUID(),
+                timestamp: new Date().toLocaleTimeString(),
+                increment,
+                totalAfter: v.count + increment,
+                isManual: false,
+              },
+              ...v.activityLog,
+            ].slice(0, 5),
           };
         }),
       );
-    }, 5500);
+    }, 4500);
 
     return () => clearInterval(interval);
   }, []);
 
-  const handleBoostVibe = (index: number) => {
-    setTrendingVibes((prev) => {
-      const copy = [...prev];
-
-      const now = Date.now();
-
-      copy[index] = {
-        ...copy[index],
-        count: copy[index].count + 15,
-        isHot: true,
-        pulseTrigger: copy[index].pulseTrigger + 1,
-        lastRapidIncrease: now,
-        activityLog: [
-          {
-            id: `${now}`,
-            timestamp: new Date(now).toLocaleTimeString(),
-            increment: 15,
-            totalAfter: copy[index].count + 15,
-            isManual: true,
-          },
-          ...copy[index].activityLog,
-        ].slice(0, 5),
-      };
-
-      return copy;
-    });
-  };
-
   const filteredMeetups = useMemo(() => {
-    return MOCK_MEETUPS.filter((m) => {
-      const matchesSearch =
-        m.title.toLowerCase().includes(search.toLowerCase()) ||
-        m.description.toLowerCase().includes(search.toLowerCase());
-
-      const matchesFilter = vibeFilter === "All" || m.category === vibeFilter;
-
-      return matchesSearch && matchesFilter;
-    });
+    return MOCK_MEETUPS.filter(
+      (m) =>
+        (m.title.toLowerCase().includes(search.toLowerCase()) ||
+          m.description.toLowerCase().includes(search.toLowerCase())) &&
+        (vibeFilter === "All" || m.category === vibeFilter),
+    );
   }, [search, vibeFilter]);
 
   const filteredTribes = useMemo(() => {
@@ -195,540 +143,466 @@ export function MeetupsView({
     );
   }, [search]);
 
+  const matchedProfiles = useMemo(() => {
+    return MOCK_PROFILES.filter((p) => p.matchMode === matchMode).slice(0, 6);
+  }, [matchMode]);
+
   const handleJoinMeetup = (id: string) => {
     setJoinedMeetupIds((prev) =>
-      prev.includes(id) ? prev.filter((mId) => mId !== id) : [...prev, id],
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
-
-    const compatible = MOCK_PROFILES.find((p) => p.matchMode === matchMode);
-
-    if (compatible) {
-      onSelectProfile(compatible);
-    }
   };
 
   return (
-    <section aria-label="Meetups and tribes" className="space-y-6 sm:space-y-8">
-      {/* Header */}
-      <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+    <div className="relative min-h-screen overflow-hidden text-white">
+      {/* Atmospheric Background */}
+      <div className="absolute inset-0 bg-[#050505]" />
+
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(0,255,170,0.12),transparent_30%),radial-gradient(circle_at_top_right,rgba(255,0,120,0.1),transparent_30%),radial-gradient(circle_at_bottom,rgba(130,0,255,0.08),transparent_40%)]" />
+
+      <div className="absolute inset-0 backdrop-blur-[120px]" />
+
+      {/* Top Header */}
+      <header className="sticky top-0 z-50 border-b border-white/5 bg-black/40 backdrop-blur-2xl">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-[#00ff99] to-[#00c2ff] shadow-[0_0_40px_rgba(0,255,153,0.35)]">
+              <Compass className="h-5 w-5 text-black" />
+            </div>
+
+            <div>
+              <h1 className="font-black tracking-tight text-white text-2xl">
+                Tribby
+              </h1>
+
+              <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-white/40">
+                Social Frequency Network
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="hidden md:flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-4 py-2 text-xs font-semibold text-emerald-300">
+              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+              Kampala Node Online
+            </div>
+
+            <button
+              onClick={() => setShowNotifications(!showNotifications)}
+              className="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl transition hover:bg-white/10"
+            >
+              <Bell className="h-5 w-5 text-white/80" />
+
+              <div className="absolute right-2 top-2 h-2 w-2 rounded-full bg-emerald-400" />
+            </button>
+          </div>
+        </div>
+
+        <AnimatePresence>
+          {showNotifications && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 10 }}
+              className="absolute right-4 top-20 z-50 w-80 rounded-3xl border border-white/10 bg-[#0d0d0d]/95 p-5 backdrop-blur-2xl shadow-[0_0_60px_rgba(0,0,0,0.6)]"
+            >
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="font-mono text-xs uppercase tracking-[0.25em] text-white/40">
+                  Signal Logs
+                </h3>
+
+                <Radio className="h-4 w-4 text-emerald-400 animate-pulse" />
+              </div>
+
+              <div className="space-y-3">
+                {notifications.map((n: any) => (
+                  <div
+                    key={n.id}
+                    className="flex items-center gap-3 rounded-2xl border border-white/5 bg-white/[0.03] p-3"
+                  >
+                    <img
+                      src={n.partnerAvatar}
+                      alt={n.userMoniker}
+                      className="h-11 w-11 rounded-full object-cover"
+                    />
+
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-white">
+                        {n.userMoniker}
+                      </p>
+
+                      <p className="text-xs text-white/50">{n.message}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </header>
+
+      <main className="relative z-10 mx-auto max-w-7xl px-4 py-8">
+        {/* Hero */}
+        <section className="relative overflow-hidden rounded-[32px] border border-white/10 bg-white/[0.03] p-8 backdrop-blur-2xl shadow-[0_0_80px_rgba(0,0,0,0.4)]">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(0,255,153,0.18),transparent_35%),radial-gradient(circle_at_bottom_left,rgba(255,0,120,0.15),transparent_35%)]" />
+
+          <div className="relative z-10 flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
+            <div className="max-w-2xl">
+              <div className="mb-4 flex items-center gap-2 text-emerald-400">
+                <Cpu className="h-5 w-5" />
+
+                <span className="font-mono text-xs uppercase tracking-[0.3em]">
+                  Live Neural Discovery
+                </span>
+              </div>
+
+              <h1 className="text-4xl font-black leading-tight tracking-tight md:text-6xl">
+                Discover
+                <span className="bg-gradient-to-r from-emerald-400 via-cyan-400 to-pink-500 bg-clip-text text-transparent">
+                  {" "}
+                  Communities
+                </span>
+                <br />
+                Around Your Frequency
+              </h1>
+
+              <p className="mt-6 max-w-xl text-base leading-relaxed text-white/60">
+                Tribby connects underground communities, nightlife tribes,
+                creators, gamers, artists, and emotional frequencies in real
+                time.
+              </p>
+
+              <div className="mt-8 flex flex-wrap gap-4">
+                <button className="rounded-2xl bg-emerald-400 px-6 py-4 text-sm font-black uppercase tracking-wider text-black transition hover:scale-[1.02]">
+                  Explore Live Nodes
+                </button>
+
+                <button className="rounded-2xl border border-white/10 bg-white/5 px-6 py-4 text-sm font-semibold text-white backdrop-blur-xl transition hover:bg-white/10">
+                  Open Match Grid
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              {[
+                {
+                  icon: Flame,
+                  label: "Trending",
+                  value: "24K+",
+                },
+                {
+                  icon: ShieldCheck,
+                  label: "Verified",
+                  value: "98%",
+                },
+                {
+                  icon: Users,
+                  label: "Communities",
+                  value: "1,204",
+                },
+                {
+                  icon: Sparkles,
+                  label: "AI Sync",
+                  value: "ACTIVE",
+                },
+              ].map((item) => (
+                <div
+                  key={item.label}
+                  className="rounded-3xl border border-white/10 bg-black/30 p-5 backdrop-blur-xl"
+                >
+                  <item.icon className="h-6 w-6 text-emerald-400" />
+
+                  <p className="mt-4 text-3xl font-black text-white">
+                    {item.value}
+                  </p>
+
+                  <p className="mt-1 text-sm text-white/50">{item.label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Search */}
+        <section className="mt-10">
+          <div className="relative">
+            <Search className="absolute left-5 top-1/2 h-5 w-5 -translate-y-1/2 text-white/40" />
+
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search tribes, meetups, frequencies..."
+              className="h-16 w-full rounded-3xl border border-white/10 bg-white/[0.03] pl-14 pr-6 text-white outline-none backdrop-blur-2xl placeholder:text-white/40 focus:border-emerald-400/40"
+            />
+          </div>
+        </section>
+
         {/* Tabs */}
-        <div
-          role="tablist"
-          aria-label="View options"
-          className="
-            flex
-            w-full
-            flex-wrap
-            gap-3
-            lg:w-auto
-          "
-        >
-          {tabs.map((t) => {
-            const active = tab === t.key;
+        <section className="mt-8 flex flex-wrap gap-4">
+          {["hangouts", "tribes"].map((t) => {
+            const active = tab === t;
 
             return (
               <button
-                key={t.key}
-                role="tab"
-                type="button"
-                aria-selected={active}
-                aria-controls={`${t.key}-panel`}
-                id={`${t.key}-tab`}
-                onClick={() => setTab(t.key as "hangouts" | "tribes")}
-                className={`
-                  min-h-[48px]
-                  rounded-2xl
-                  px-5
-                  py-3
-                  text-sm
-                  font-semibold
-                  transition-all
-                  duration-200
-                  focus:outline-none
-                  focus-visible:ring-4
-                  focus-visible:ring-green-400/30
-                  ${
-                    active
-                      ? "bg-green-400 text-black shadow-lg shadow-green-500/20"
-                      : "border border-white/10 bg-white/5 text-white hover:bg-white/10"
-                  }
-                `}
+                key={t}
+                onClick={() => setTab(t as "hangouts" | "tribes")}
+                className={`rounded-2xl px-6 py-4 text-sm font-bold transition-all ${
+                  active
+                    ? "bg-emerald-400 text-black shadow-[0_0_30px_rgba(0,255,153,0.35)]"
+                    : "border border-white/10 bg-white/[0.03] text-white hover:bg-white/10"
+                }`}
               >
-                {t.label}
+                {t === "hangouts" ? "📍 Local Hangouts" : "🔥 Tribal Nodes"}
               </button>
             );
           })}
-        </div>
+        </section>
 
-        {/* Search */}
-        <div className="relative w-full lg:max-w-md">
-          <label htmlFor={searchId} className="sr-only">
-            Search meetups or tribes
-          </label>
+        {/* Trending */}
+        <section className="mt-12">
+          <div className="mb-6 flex items-center gap-3">
+            <TrendingUp className="h-6 w-6 text-pink-400" />
 
-          <Search
-            aria-hidden="true"
-            className="
-              absolute
-              left-4
-              top-1/2
-              h-4
-              w-4
-              -translate-y-1/2
-              text-white/40
-            "
-          />
-
-          <input
-            id={searchId}
-            type="search"
-            autoComplete="off"
-            placeholder={`Search ${tab}...`}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="
-              w-full
-              rounded-2xl
-              border
-              border-white/10
-              bg-black/40
-              py-3
-              pl-11
-              pr-4
-              text-sm
-              text-white
-              placeholder:text-white/40
-              outline-none
-              backdrop-blur-xl
-              transition-all
-              focus:border-green-400/50
-              focus:ring-4
-              focus:ring-green-400/20
-            "
-          />
-        </div>
-      </div>
-
-      {/* Trending */}
-      <section
-        aria-labelledby="trending-vibes"
-        className="
-          overflow-hidden
-          rounded-3xl
-          border
-          border-white/10
-          bg-white/[0.04]
-          p-4
-          sm:p-6
-          backdrop-blur-2xl
-        "
-      >
-        <div className="mb-5 flex items-center gap-3">
-          <div
-            className="
-              flex
-              h-10
-              w-10
-              items-center
-              justify-center
-              rounded-2xl
-              bg-green-400/10
-            "
-          >
-            <Sparkles className="h-5 w-5 text-green-400" />
-          </div>
-
-          <div>
-            <h2
-              id="trending-vibes"
-              className="
-                text-sm
-                font-semibold
-                uppercase
-                tracking-[0.18em]
-                text-white
-              "
-            >
-              Trending Vibes
+            <h2 className="text-2xl font-black tracking-tight text-white">
+              Trending Frequencies
             </h2>
-
-            <p className="text-xs text-white/50">
-              Live emotional sync activity
-            </p>
           </div>
-        </div>
 
-        <div
-          className="
-            grid
-            grid-cols-1
-            gap-4
-            sm:grid-cols-2
-            xl:grid-cols-3
-          "
-        >
-          {trendingVibes.map((vibe, index) => (
-            <motion.button
-              key={vibe.tag}
-              type="button"
-              whileHover={
-                shouldReduceMotion
-                  ? {}
-                  : {
-                      y: -4,
-                      scale: 1.02,
-                    }
-              }
-              whileTap={
-                shouldReduceMotion
-                  ? {}
-                  : {
-                      scale: 0.98,
-                    }
-              }
-              onClick={() => handleBoostVibe(index)}
-              aria-label={`Boost ${vibe.tag} vibe`}
-              className={`
-                  relative
-                  overflow-hidden
-                  rounded-3xl
-                  border
-                  p-5
-                  text-left
-                  transition-all
-                  duration-300
-                  focus:outline-none
-                  focus-visible:ring-4
-                  focus-visible:ring-pink-500/30
-                  ${
-                    vibe.isHot
-                      ? "border-pink-500/40 bg-pink-500/10 shadow-lg shadow-pink-500/10"
-                      : "border-white/10 bg-white/[0.03]"
-                  }
-                `}
-            >
-              <div className="flex items-start justify-between">
-                <div className="text-3xl">{vibe.icon}</div>
+          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            {trendingVibes.map((v) => (
+              <motion.div
+                key={v.tag}
+                whileHover={shouldReduceMotion ? {} : { y: -5 }}
+                className="group relative overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.03] p-6 backdrop-blur-2xl transition-all hover:border-emerald-400/30"
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-emerald-400/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
 
-                <div
-                  className="
-                      flex
-                      h-10
-                      w-10
-                      items-center
-                      justify-center
-                      rounded-2xl
-                      bg-green-400/10
-                    "
-                >
-                  <TrendingUp className="h-5 w-5 text-green-400" />
+                <div className="relative z-10">
+                  <div className="flex items-center justify-between">
+                    <span className="text-3xl">{v.icon}</span>
+
+                    <TrendingUp className="h-5 w-5 text-emerald-400" />
+                  </div>
+
+                  <h3 className="mt-6 text-2xl font-black text-white">
+                    {v.tag}
+                  </h3>
+
+                  <p className="mt-2 font-mono text-sm text-emerald-400">
+                    {v.count.toLocaleString()} syncs
+                  </p>
+
+                  <div className="mt-5 h-2 overflow-hidden rounded-full bg-white/5">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-cyan-400"
+                      style={{
+                        width: `${Math.min(v.count / 30, 100)}%`,
+                      }}
+                    />
+                  </div>
+
+                  <div className="mt-4 flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-white/40">
+                    <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                    Live growth
+                  </div>
                 </div>
-              </div>
+              </motion.div>
+            ))}
+          </div>
+        </section>
 
-              <div className="mt-6">
-                <h3 className="text-lg font-semibold text-white">{vibe.tag}</h3>
+        {/* Meetups */}
+        {tab === "hangouts" && (
+          <section className="mt-14">
+            <div className="mb-6 flex items-center gap-3">
+              <Ticket className="h-6 w-6 text-yellow-400" />
 
-                <p className="mt-2 text-sm text-green-400">
-                  {vibe.count.toLocaleString()} syncs
-                </p>
-              </div>
+              <h2 className="text-2xl font-black text-white">Local Hangouts</h2>
+            </div>
 
-              {vibe.isHot && (
-                <div
-                  className="
-                      absolute
-                      right-4
-                      top-4
-                      rounded-full
-                      bg-pink-500/20
-                      px-3
-                      py-1
-                      text-[10px]
-                      font-bold
-                      uppercase
-                      tracking-widest
-                      text-pink-300
-                    "
-                >
-                  Hot
-                </div>
-              )}
-            </motion.button>
-          ))}
-        </div>
-      </section>
+            <div className="grid gap-6 lg:grid-cols-2">
+              {filteredMeetups.map((m) => {
+                const joined = joinedMeetupIds.includes(m.id);
 
-      {/* Hangouts */}
-      {tab === "hangouts" && (
-        <section
-          id="hangouts-panel"
-          role="tabpanel"
-          aria-labelledby="hangouts-tab"
-        >
-          <div
-            className="
-              grid
-              grid-cols-1
-              gap-5
-              lg:grid-cols-2
-            "
-          >
-            {filteredMeetups.map((m) => {
-              const joined = joinedMeetupIds.includes(m.id);
+                return (
+                  <motion.article
+                    key={m.id}
+                    whileHover={shouldReduceMotion ? {} : { y: -6 }}
+                    className="overflow-hidden rounded-[32px] border border-white/10 bg-white/[0.03] backdrop-blur-2xl"
+                  >
+                    <div className="relative h-56 overflow-hidden">
+                      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent z-10" />
 
-              return (
-                <motion.article
-                  key={m.id}
-                  initial={
-                    shouldReduceMotion
-                      ? false
-                      : {
-                          opacity: 0,
-                          y: 20,
-                        }
-                  }
-                  animate={
-                    shouldReduceMotion
-                      ? {}
-                      : {
-                          opacity: 1,
-                          y: 0,
-                        }
-                  }
-                  className="
-                    rounded-3xl
-                    border
-                    border-white/10
-                    bg-white/[0.04]
-                    p-5
-                    backdrop-blur-2xl
-                  "
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <h3 className="text-lg font-semibold text-white">
+                      <Image
+                        src={m.imageUrl}
+                        alt={m.title}
+                        fill
+                        className="object-cover transition-transform duration-700 hover:scale-110"
+                      />
+
+                      <div className="absolute bottom-5 left-5 z-20">
+                        <span className="rounded-full bg-emerald-400/15 px-4 py-2 text-xs font-bold uppercase tracking-wider text-emerald-300 backdrop-blur-xl">
+                          {m.category}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="p-6">
+                      <h3 className="text-2xl font-black text-white">
                         {m.title}
                       </h3>
 
-                      <p className="mt-3 text-sm leading-relaxed text-white/65">
+                      <p className="mt-4 leading-relaxed text-white/60">
                         {m.description}
                       </p>
+
+                      <div className="mt-5 flex items-center gap-2 text-sm text-pink-300">
+                        <Music className="h-4 w-4" />
+
+                        {m.music}
+                      </div>
+
+                      <button
+                        onClick={() => handleJoinMeetup(m.id)}
+                        className={`mt-6 h-14 w-full rounded-2xl text-sm font-black uppercase tracking-wider transition-all ${
+                          joined
+                            ? "bg-emerald-400 text-black"
+                            : "border border-white/10 bg-white/5 text-white hover:bg-white/10"
+                        }`}
+                      >
+                        {joined ? "Joined ✓" : "Join Meetup"}
+                      </button>
+                    </div>
+                  </motion.article>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {/* Tribes */}
+        {tab === "tribes" && (
+          <section className="mt-14">
+            <div className="mb-6 flex items-center gap-3">
+              <Users className="h-6 w-6 text-purple-400" />
+
+              <h2 className="text-2xl font-black text-white">Tribal Nodes</h2>
+            </div>
+
+            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+              {filteredTribes.map((t) => {
+                const joined = userTribeKeys.includes(t.name);
+
+                return (
+                  <motion.article
+                    key={t.id}
+                    whileHover={shouldReduceMotion ? {} : { y: -6 }}
+                    className="overflow-hidden rounded-[32px] border border-white/10 bg-white/[0.03] backdrop-blur-2xl"
+                  >
+                    <div className="relative h-56">
+                      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent z-10" />
+
+                      <Image
+                        src={t.imageUrl}
+                        alt={t.name}
+                        fill
+                        className="object-cover transition-transform duration-700 hover:scale-110"
+                      />
                     </div>
 
-                    <div
-                      className="
-                        flex
-                        h-12
-                        w-12
-                        items-center
-                        justify-center
-                        rounded-2xl
-                        bg-green-400/10
-                      "
-                    >
-                      <Users className="h-5 w-5 text-green-400" />
+                    <div className="p-6">
+                      <h3 className="text-2xl font-black text-white">
+                        {t.name}
+                      </h3>
+
+                      <p className="mt-4 leading-relaxed text-white/60">
+                        {t.description}
+                      </p>
+
+                      <button
+                        onClick={() => onTribeJoined(t.name)}
+                        className={`mt-6 h-14 w-full rounded-2xl text-sm font-black uppercase tracking-wider transition-all ${
+                          joined
+                            ? "bg-emerald-400 text-black"
+                            : "border border-white/10 bg-white/5 text-white hover:bg-white/10"
+                        }`}
+                      >
+                        {joined ? "Synced ✓" : "Connect Node"}
+                      </button>
+                    </div>
+                  </motion.article>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {/* Recommended Connections */}
+        <section className="mt-14">
+          <div className="mb-6 flex items-center gap-3">
+            <Users className="h-6 w-6 text-cyan-400" />
+
+            <h2 className="text-2xl font-black text-white">
+              Recommended Connections
+            </h2>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+            {matchedProfiles.map((profile) => (
+              <motion.article
+                key={profile.id}
+                whileHover={shouldReduceMotion ? {} : { y: -6 }}
+                className="overflow-hidden rounded-[32px] border border-white/10 bg-white/[0.03] backdrop-blur-2xl"
+              >
+                <div className="relative h-72">
+                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent z-10" />
+
+                  <Image
+                    src={profile.imageUrl}
+                    alt={profile.moniker}
+                    fill
+                    className="object-cover"
+                  />
+
+                  <div className="absolute bottom-5 left-5 z-20">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-2xl font-black text-white">
+                        {profile.moniker}
+                      </h3>
+
+                      <CheckCircle2 className="h-5 w-5 text-emerald-400" />
                     </div>
                   </div>
+                </div>
 
-                  <div
-                    className="
-                      mt-5
-                      flex
-                      flex-wrap
-                      items-center
-                      gap-3
-                    "
-                  >
-                    <div
-                      className="
-                        flex
-                        items-center
-                        gap-2
-                        rounded-full
-                        bg-white/5
-                        px-4
-                        py-2
-                        text-xs
-                        text-white/70
-                      "
-                    >
-                      <Music className="h-4 w-4" />
-                      {m.music}
-                    </div>
+                <div className="p-6">
+                  <p className="leading-relaxed text-white/60">{profile.bio}</p>
 
-                    <div
-                      className="
-                        rounded-full
-                        bg-green-400/10
-                        px-4
-                        py-2
-                        text-xs
-                        font-medium
-                        text-green-300
-                      "
-                    >
-                      {m.category}
-                    </div>
+                  <div className="mt-5 flex flex-wrap gap-2">
+                    {profile.tags?.map((tag) => (
+                      <span
+                        key={tag}
+                        className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/70"
+                      >
+                        #{tag}
+                      </span>
+                    ))}
                   </div>
 
                   <button
-                    type="button"
-                    onClick={() => handleJoinMeetup(m.id)}
-                    aria-pressed={joined}
-                    className={`
-                      mt-6
-                      flex
-                      min-h-[50px]
-                      w-full
-                      items-center
-                      justify-center
-                      gap-2
-                      rounded-2xl
-                      px-4
-                      py-3
-                      text-sm
-                      font-semibold
-                      transition-all
-                      duration-200
-                      focus:outline-none
-                      focus-visible:ring-4
-                      focus-visible:ring-green-400/30
-                      ${
-                        joined
-                          ? "bg-purple-500 text-black"
-                          : "bg-green-400 text-black hover:brightness-110"
-                      }
-                    `}
+                    onClick={() => onSelectProfile(profile)}
+                    className="mt-6 h-14 w-full rounded-2xl bg-gradient-to-r from-emerald-400 to-cyan-400 text-sm font-black uppercase tracking-wider text-black shadow-[0_0_30px_rgba(0,255,153,0.35)] transition hover:scale-[1.01]"
                   >
-                    {joined ? (
-                      <>
-                        <CheckCircle2 className="h-4 w-4" />
-                        Joined
-                      </>
-                    ) : (
-                      <>
-                        <Ticket className="h-4 w-4" />
-                        Join Meetup
-                      </>
-                    )}
+                    View Match
                   </button>
-                </motion.article>
-              );
-            })}
+                </div>
+              </motion.article>
+            ))}
           </div>
         </section>
-      )}
-
-      {/* Tribes */}
-      {tab === "tribes" && (
-        <section id="tribes-panel" role="tabpanel" aria-labelledby="tribes-tab">
-          <div
-            className="
-              grid
-              grid-cols-1
-              gap-5
-              sm:grid-cols-2
-              xl:grid-cols-3
-            "
-          >
-            {filteredTribes.map((t) => {
-              const joined = userTribeKeys.includes(t.name);
-
-              return (
-                <motion.article
-                  key={t.id}
-                  initial={
-                    shouldReduceMotion
-                      ? false
-                      : {
-                          opacity: 0,
-                          y: 20,
-                        }
-                  }
-                  animate={
-                    shouldReduceMotion
-                      ? {}
-                      : {
-                          opacity: 1,
-                          y: 0,
-                        }
-                  }
-                  className="
-                    overflow-hidden
-                    rounded-3xl
-                    border
-                    border-white/10
-                    bg-white/[0.04]
-                    backdrop-blur-2xl
-                  "
-                >
-                  <div className="relative h-44 w-full">
-                    <Image
-                      src={t.imageUrl}
-                      alt={t.name}
-                      fill
-                      className="object-cover"
-                    />
-
-                    <div
-                      className="
-                        absolute
-                        inset-0
-                        bg-gradient-to-t
-                        from-black
-                        to-transparent
-                      "
-                    />
-                  </div>
-
-                  <div className="p-5">
-                    <h3 className="text-lg font-semibold text-white">
-                      {t.name}
-                    </h3>
-
-                    <p className="mt-3 text-sm leading-relaxed text-white/65">
-                      {t.description}
-                    </p>
-
-                    <button
-                      type="button"
-                      onClick={() => onTribeJoined(t.name)}
-                      aria-pressed={joined}
-                      className={`
-                        mt-6
-                        flex
-                        min-h-[50px]
-                        w-full
-                        items-center
-                        justify-center
-                        rounded-2xl
-                        px-4
-                        py-3
-                        text-sm
-                        font-semibold
-                        transition-all
-                        duration-200
-                        focus:outline-none
-                        focus-visible:ring-4
-                        focus-visible:ring-green-400/30
-                        ${
-                          joined
-                            ? "bg-green-400 text-black"
-                            : "border border-white/10 bg-white/10 text-white hover:bg-white/20"
-                        }
-                      `}
-                    >
-                      {joined ? "Synced ✓" : "Connect Node"}
-                    </button>
-                  </div>
-                </motion.article>
-              );
-            })}
-          </div>
-        </section>
-      )}
-    </section>
+      </main>
+    </div>
   );
-}
+};
 
 export default MeetupsView;
